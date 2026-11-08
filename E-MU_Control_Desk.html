@@ -51,6 +51,8 @@
     .connection { display: flex; align-items: center; justify-content: end; gap: 7px; flex-wrap: wrap; }
     .connection select { width: min(230px, 44vw); }
     .connection select, .control-select, .select { min-width: 0; height: 32px; padding: 0 9px; border: 1px solid var(--line); border-radius: 2px; background: var(--field-bg); font-size: 11px; }
+    .coffee-link { display: inline-flex; align-items: center; justify-content: center; min-height: 32px; padding: 0 10px; border: 1px solid var(--line); border-radius: 2px; color: var(--amber); font-size: 10px; font-weight: 700; text-decoration: none; white-space: nowrap; }
+    .coffee-link:hover { border-color: var(--amber); color: var(--ink); background: var(--panel-2); }
     .btn { min-height: 32px; padding: 0 11px; border: 1px solid var(--line); border-radius: 2px; background: var(--button-bg); color: var(--ink); font-size: 10px; font-weight: 700; letter-spacing: .55px; text-transform: uppercase; }
     .btn:hover:not(:disabled) { border-color: var(--mint); color: var(--mint); }
     .btn.primary { background: var(--button-primary); border-color: var(--button-primary-border); color: #fff; }
@@ -174,6 +176,10 @@
     .five-octaves { height: 166px; padding: 0 13px 13px; }
     .five-octaves .micro-keyboard { height: 100%; }
     .five-octaves .black-key { width: 1.8%; height: 59%; }
+    .app-footer { display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap; padding: 16px 8px 4px; color: var(--muted); font: 10px var(--mono); text-align: center; }
+    .app-footer a { color: var(--amber); text-decoration: none; }
+    .app-footer a:hover { color: var(--ink); text-decoration: underline; }
+    .footer-separator { color: var(--line); }
     .key-capture.active { border-color: var(--amber); color: var(--amber); }
     .empty-note { padding: 12px; color: var(--muted); font-size: 10px; }
     dialog { width: min(440px, calc(100vw - 28px)); padding: 0; border: 1px solid var(--line); background: var(--panel); color: var(--ink); box-shadow: 0 20px 70px #000b; }
@@ -249,6 +255,7 @@
         <select id="channel" aria-label="MIDI channel"></select>
         <select id="deviceId" aria-label="SysEx device ID" title="Proteus SysEx device ID"></select>
         <label class="toggle"><input id="midiThru" type="checkbox"> Thru</label>
+        <a class="coffee-link" href="https://buymeacoffee.com/szezo" target="_blank" rel="noopener noreferrer">Buy me a coffee</a>
       </div>
     </header>
 
@@ -337,6 +344,7 @@
       <div class="bottom-head"><h2>Performance keyboard</h2><div class="row"><span class="kicker">C2–B6 · 5 OCTAVES</span><label class="toggle"><input id="mainArp" type="checkbox"> Main arp</label><label class="toggle"><input id="mainLatch" type="checkbox"> Latch</label></div></div>
       <div class="five-octaves"><div class="micro-keyboard" id="mainKeys"></div></div>
     </section>
+    <footer class="app-footer"><span>Project</span><a href="https://github.com/szezo/E-MU_Control_Desk" target="_blank" rel="noopener noreferrer">github.com/szezo/E-MU_Control_Desk</a><span class="footer-separator">·</span><a href="https://buymeacoffee.com/szezo" target="_blank" rel="noopener noreferrer">Buy me a coffee</a></footer>
 
     <dialog id="storeDialog">
       <form method="dialog" id="storeForm">
