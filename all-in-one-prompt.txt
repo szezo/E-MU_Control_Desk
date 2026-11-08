@@ -1,0 +1,81 @@
+# All-in-one implementation prompt: E-MU Proteus family Web MIDI editor
+
+Act as an expert sound engineer familiar with E-MU Proteus-family rack modules, a Web MIDI developer, and a careful UI designer. Build and maintain a usable, single-page browser editor for controlling these E-MU modules:
+
+- Proteus 2000
+- Audity 2000
+- Virtuoso 2000
+- Xtreme Lead-1
+- Mo'Phatt
+
+The main implementation must be one self-contained HTML page with inline CSS and JavaScript. Use the local product photos when present. Do not invent MIDI or SysEx protocol details: follow the documented E-MU Proteus-family SysEx specification and distinguish standard MIDI CCs from preset-parameter SysEx edits. The target browser is Chrome (Chromium Web MIDI); clearly handle the HTTPS/localhost requirement and SysEx permission.
+
+## Module Selection and Rack Surface
+
+- Provide a module selector for all five models.
+- Selecting a model updates the rack photograph, overlay accent colors, LCD treatment, and any model-specific labels or behavior.
+- Use these supplied images from the project folder:
+  - `EMU-PROTEUS-2000.jpg`
+  - `EMU-AUDITY-2000.jpg`
+  - `EMU-VIRTUOSO-2000.jpg`
+  - `EMU-XTREME-LEAD-1.jpg`
+- There is no supplied Mo'Phatt photo. Use the Proteus-family image as a clearly identified fallback unless a Mo'Phatt image is added later.
+- The product photograph is the primary rack surface. Do not place a separate synth-name headline over it; selecting a model in the connection bar is sufficient.
+- Overlay functional controls directly on the photo and align them with the photographed hardware. Keep the rack visually proportionate, responsive, keyboard/touch accessible, and readable. Avoid a separate opaque control strip obscuring the faceplate.
+- Left of the LCD, overlay the hardware control bank pushbutton and rotary controls for Volume and controllers A, B, C, and D.
+- Right of the LCD, overlay the top row of Master, Edit, cursor-left, and cursor-right buttons; the bottom row of Audition, Multi, Save/Copy, and Home/Enter buttons; and the large rotary value encoder.
+- Make these controls functional, not decorative. Use rotary-style knobs with a visible indicator that actually rotates as its value changes; support pointer/touch drag and keyboard operation. The Control pushbutton should cycle controller banks A-D, E-H, and I-L. Rotary Volume should send channel volume CC 7. Controller knobs should use their current assigned CC numbers and stay synchronized with the corresponding controller controls elsewhere in the UI. The value encoder should support drag/wheel or keyboard movement and send relative rotary events; its press should activate the documented Enter action.
+- Clicking or keyboard-activating the LCD opens a dedicated Patch Select view. Include ROM and bank selection, search, and every program slot in the selected bank as a mouse/touch-clickable patch item. Use four columns on desktop and two on narrow screens, compact row spacing, and readable patch-name/program-number typography (about 14px names and 12px numbers, with rows around 32px tall).
+- Populate patch labels from cached names when available. Provide an explicit Fetch Bank Names action that requests names using the documented generic-name SysEx request, paces requests to avoid flooding MIDI, and updates the matching ROM/program entry when replies arrive. If names have not been fetched, list the numbered slots without inventing patch names. Name fetching requires a return MIDI input; explain the missing-input state.
+- Clicking a patch sends Bank Select MSB/LSB and Program Change on the selected MIDI channel, updates the main ROM/bank/program fields, closes the picker, and requests that preset's dump so the editor loads its actual name and parameters.
+- The entire page palette must follow the selected module, not only the rack overlay. Update the page background, panels, borders, form fields, buttons, focus rings, patch-picker states, MIDI monitor accents, and keyboard pressed states together.
+- Derive distinct color tokens for each module from its faceplate: cyan/charcoal for Proteus, blue/cyan for Audity, silver/graphite with gold accents for Virtuoso, yellow/charcoal for Xtreme Lead-1, and a cool blue palette for Mo'Phatt. Keep the Mo'Phatt photo fallback clearly identified, but still apply its own palette.
+- Changing the module selector must update the photo and all shared theme tokens immediately, without reloading the page. Ensure readable text contrast and keep semantic status colors (connected, warning, error) clear against every theme.
+
+## MIDI Connection and Monitor
+
+- Provide MIDI input and output selection, enable Web MIDI with SysEx access, a MIDI channel selector, and a SysEx device-ID selector.
+- Support connecting to MIDI hardware and listening to its MIDI input. Make remote-panel session lifecycle explicit and close it when switching output or leaving the page.
+- Include a MIDI monitor that shows each incoming and outgoing message both as hexadecimal bytes and a human-readable description. Include filtering and clear controls.
+- Report permission, unsupported-browser, missing-port, and disconnected-device states without crashing.
+- Preserve the distinction between ordinary CC control and Proteus parameter editing: the Proteus edits preset parameters over SysEx; MIDI A-L CCs feed the synth's modulation sources and do not directly replace preset-parameter SysEx.
+- Keep channel messages on the selected MIDI channel. Send volume as CC 7; send A-L controller values using the configured CC mappings.
+
+## Presets and SysEx
+
+- Allow the user to request/read a preset from the synth, including its name, and reflect received preset parameter values in the controls on screen.
+- Provide preset ROM/bank/program selection and a readable current-preset name.
+- The synth LCD is a shortcut into Patch Select; choosing an entry from the four-column bank list must select and retrieve that preset.
+- Provide a store-to-synth workflow that asks for a preset name/category and a User RAM bank and slot, warns before overwriting, and does not imply ROM presets are writable.
+- Include get/read-name and store/copy actions. Use the E-MU family SysEx protocol for parameter edits, requests, preset dump receive, and copy-to-user-RAM operations. Handle 14-bit values in LSB-first order, signed values, dump packets, checksums/handshaking where required, device ID, timeouts, and errors.
+- Ensure a retrieved dump updates the correct common and layer parameters rather than assigning every layer's data to one layer.
+- Never send guessed or fabricated parameter IDs or SysEx bytes. If a hardware-dependent command cannot be completed, report that rather than silently pretending it succeeded.
+
+## Voice and Effects Editing
+
+- Provide editable controls for all documented controllable voice parameters on each of the four independent layers A, B, C, and D. Layer selection must target the correct layer in SysEx and retrieved values must update that layer.
+- Include documented groups such as instrument/ROM, level, pan, key and velocity ranges/fades, tuning, chorus, glide, sample behavior, Z-plane filter type/frequency/Q, volume/filter/aux envelopes, two LFOs, and 24 patch cords.
+- Provide effect controls for preset effects A and B, including algorithm selection, effect parameters, routing/sends, and B-to-A routing where supported.
+- Use per-module profile colors while preserving a consistent layout and clear labels across the module family.
+
+## Performance Controls
+
+- Put a five-octave virtual MIDI keyboard along the bottom of the page. Support pointer/touch and computer-keyboard play, note-on/note-off, velocity, and reliable release of held notes on blur or stop.
+- Add a left-side bass section with a two-octave virtual keyboard, chord controls, and start/stop.
+- Bass arpeggiator types: None, Up, Down, Up/Down, Octave, Chord, and Custom Keys. Include latch and note-rate controls.
+- Chord controls must support Major and Minor with root position, first inversion, and second inversion.
+- Allow selecting custom notes by clicking keys and explicitly storing the selection, separately for the bass arp and the main-melody arp.
+- Add a global tempo control. Provide main/preset arpeggiator on/off and latch controls, and send documented hardware parameters when they are available.
+- All note paths must send matching note-offs, including arpeggiator stop, latch transitions, focus loss, and keyboard release.
+
+## Quality and Acceptance Checks
+
+- Keep the implementation standalone and avoid adding build dependencies unless absolutely necessary.
+- Verify all supplied image assets load and each module selection updates the right image, labels, and color scheme.
+- Verify each module selection changes computed colors for the page, panels, buttons, form controls, patch picker, and keyboard feedback—not just the rack accent—and updates the browser theme color.
+- Verify the overlay elements align with the rack photo at desktop and mobile widths, with no unintended page overflow or overlapping controls. On narrow screens, preserve access to the full rack controls.
+- Verify each of the five rotary controls left of the LCD changes its visible indicator during vertical drag as well as updating its value; do not rely on an invisible horizontal range input to provide the rotary gesture. Verify the encoder remains independently functional.
+- Verify clicking the LCD opens Patch Select, exactly 128 program slots appear for a bank, search filters them, fetched names populate the correct ROM/program slot, and selecting a slot sends bank/program selection before requesting the preset dump. Check four columns on desktop, two on narrow screens, and no clipped text.
+- With a virtual/fake MIDI endpoint, verify MIDI channel selection, CC values, SysEx framing/device ID, remote panel button press/release, encoder deltas, preset read/store request construction, controller-bank cycling, keyboard note-on/note-off, arpeggiator latch/stop, and dump-to-layer mapping.
+- Check browser console/page errors and editor diagnostics. Report any behavior that could not be verified without a physical E-MU module; do not claim hardware-tested behavior unless it was actually tested.
+- Keep the interface focused on the instrument. Avoid adding a separate synth-name hero/title over the product image.
