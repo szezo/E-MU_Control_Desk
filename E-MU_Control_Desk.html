@@ -126,6 +126,11 @@
     .bass-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
     .chord-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
     .main-panel { overflow: hidden; }
+    .main-column { display: grid; min-width: 0; gap: 12px; }
+    .monitor-panel .panel-head { background: var(--panel); }
+    .monitor-body { padding: 11px 12px; display: grid; grid-template-columns: minmax(0,1fr) 2fr; gap: 8px 12px; }
+    .monitor-body .monitor-tools { grid-column: 1 / -1; }
+    .monitor-body .monitor { grid-column: 1 / -1; height: 190px; }
     .layers { display: flex; gap: 5px; padding: 10px 12px 0; border-bottom: 1px solid var(--line); }
     .layer-tab, .group-tab { min-height: 31px; padding: 0 12px; border: 1px solid transparent; border-bottom: 0; background: transparent; color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .8px; }
     .layer-tab[aria-selected="true"] { background: var(--panel-2); border-color: var(--line); color: var(--mint); }
@@ -307,6 +312,7 @@
         </div>
       </aside>
 
+      <div class="main-column">
       <section class="panel main-panel" aria-label="Four layer voice editor">
         <div class="panel-head"><h2>Preset voice</h2><span class="kicker" id="layerMode">EDIT BUFFER · SYSEx PARAMETER EDITS</span></div>
         <div class="layers" role="tablist" aria-label="Voice layer">
@@ -318,6 +324,14 @@
         </div>
         <div class="parameter-area"><p class="group-note" id="groupNote">Per-layer instrument, level, pan, key/velocity ranges, tuning, chorus, glide and playback behavior.</p><div class="param-grid" id="paramGrid"></div></div>
       </section>
+      <section class="panel monitor-panel" aria-label="MIDI monitor">
+        <div class="panel-head"><h2>MIDI monitor</h2><span class="kicker">IN / OUT · HEX + MESSAGE</span></div>
+        <div class="monitor-body">
+          <div class="monitor-tools"><select id="monitorFilter" class="control-select" aria-label="Monitor filter"><option value="all">All MIDI messages</option><option value="sysex">SysEx only</option><option value="channel">Channel messages</option></select><button class="btn" id="clearMonitor" type="button">Clear</button></div>
+          <div class="monitor" id="monitor" aria-live="polite"></div>
+        </div>
+      </section>
+      </div>
 
       <div class="right-column">
         <section class="panel fx-panel" aria-label="Preset effects">
@@ -327,14 +341,12 @@
             <div class="fx-grid" id="fxGrid"></div><div class="fx-flow">LAYER BUS 1–4 → EFFECT B → EFFECT A → MAIN OUT</div>
           </div>
         </section>
-        <section class="panel utility-panel" aria-label="Master tempo and MIDI monitor">
-          <div class="panel-head"><h2>Tempo & MIDI monitor</h2><span class="kicker" id="clockStatus">NO MIDI CLOCK</span></div>
+        <section class="panel utility-panel" aria-label="Master tempo and arpeggiator">
+          <div class="panel-head"><h2>Tempo & arpeggiator</h2><span class="kicker" id="clockStatus">NO MIDI CLOCK</span></div>
           <div class="utility-body">
             <div class="tempo-block"><span class="small-label">Master BPM</span><input id="tempo" type="range" min="0" max="300" value="120"><output class="tempo-value" id="tempoValue">120</output></div>
             <div class="row"><label class="toggle"><input id="arpEnabled" type="checkbox"> Preset arp</label><label class="toggle"><input id="arpLatch" type="checkbox"> Latch</label><select class="control-select" id="arpMode" aria-label="Hardware arpeggiator mode"><option value="0">Up</option><option value="1">Down</option><option value="2">Up / down</option><option value="3">Forward assign</option><option value="4">Backward assign</option><option value="5">Forward / backward</option><option value="6">Random</option><option value="7">Pattern</option></select></div>
             <div class="small-label">Live MIDI A–L · CC patch-cord controls</div><div class="cc-grid" id="ccGrid"></div><div class="cc-note">Proteus preset parameters use SysEx edits. These CCs feed the unit's MIDI A–L modulation sources; NRPN is not its preset-edit protocol.</div>
-            <div class="monitor-tools"><select id="monitorFilter" class="control-select" aria-label="Monitor filter"><option value="all">All MIDI messages</option><option value="sysex">SysEx only</option><option value="channel">Channel messages</option></select><button class="btn" id="clearMonitor" type="button">Clear</button></div>
-            <div class="monitor" id="monitor" aria-live="polite"></div>
           </div>
         </section>
       </div>

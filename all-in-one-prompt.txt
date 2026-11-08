@@ -36,7 +36,8 @@ The main implementation must be one self-contained HTML page with inline CSS and
 
 - Provide MIDI input and output selection, enable Web MIDI with SysEx access, a MIDI channel selector, and a SysEx device-ID selector.
 - Support connecting to MIDI hardware and listening to its MIDI input. Make remote-panel session lifecycle explicit and close it when switching output or leaving the page.
-- Include a MIDI monitor that shows each incoming and outgoing message both as hexadecimal bytes and a human-readable description. Include filtering and clear controls.
+- Place the MIDI monitor in the middle column directly below the Preset voice editor, not in the tempo/arp panel. It must show each incoming and outgoing message both as hexadecimal bytes and a human-readable description, with filtering and clear controls.
+- Keep global tempo and arpeggiator controls in the right column; do not combine them with or duplicate the MIDI monitor.
 - Report permission, unsupported-browser, missing-port, and disconnected-device states without crashing.
 - Preserve the distinction between ordinary CC control and Proteus parameter editing: the Proteus edits preset parameters over SysEx; MIDI A-L CCs feed the synth's modulation sources and do not directly replace preset-parameter SysEx.
 - Keep channel messages on the selected MIDI channel. Send volume as CC 7; send A-L controller values using the configured CC mappings.
@@ -76,6 +77,7 @@ The main implementation must be one self-contained HTML page with inline CSS and
 - Verify the overlay elements align with the rack photo at desktop and mobile widths, with no unintended page overflow or overlapping controls. On narrow screens, preserve access to the full rack controls.
 - Verify each of the five rotary controls left of the LCD changes its visible indicator during vertical drag as well as updating its value; do not rely on an invisible horizontal range input to provide the rotary gesture. Verify the encoder remains independently functional.
 - Verify clicking the LCD opens Patch Select, exactly 128 program slots appear for a bank, search filters them, fetched names populate the correct ROM/program slot, and selecting a slot sends bank/program selection before requesting the preset dump. Check four columns on desktop, two on narrow screens, and no clipped text.
+- Verify the MIDI monitor appears directly beneath Preset voice in the middle column and the right column contains tempo/arp controls only. Confirm messages still arrive in the single monitor instance.
 - With a virtual/fake MIDI endpoint, verify MIDI channel selection, CC values, SysEx framing/device ID, remote panel button press/release, encoder deltas, preset read/store request construction, controller-bank cycling, keyboard note-on/note-off, arpeggiator latch/stop, and dump-to-layer mapping.
 - Check browser console/page errors and editor diagnostics. Report any behavior that could not be verified without a physical E-MU module; do not claim hardware-tested behavior unless it was actually tested.
 - Keep the interface focused on the instrument. Avoid adding a separate synth-name hero/title over the product image.
