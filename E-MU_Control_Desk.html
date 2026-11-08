@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#191e1c">
+  <title>Proteus 2000 | EMU Control Desk</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #151917;
+      --panel: #202623;
+      --panel-2: #272e2a;
+      --panel-3: #303833;
+      --line: #46504a;
+      --ink: #edf0e9;
+      --muted: #9da69f;
+      --mint: #a9d8a4;
+      --amber: #f0bf61;
+      --red: #df7358;
+      --blue: #79b7c8;
+      --field-bg: #171c19;
+      --button-bg: #303833;
+      --button-primary: #537c60;
+      --button-primary-border: #70967b;
+      --button-primary-hover: #658f70;
+      --button-warn-bg: #3a2823;
+      --button-warn-border: #845548;
+      --control-text: #c4cbc4;
+      --dim: #7f8981;
+      --monitor-bg: #101411;
+      --monitor-text: #c1d9bf;
+      --monitor-in: #a3c7d0;
+      --warning-text: #e9b38e;
+      --warning-bg: #202623;
+      --mono: "Cascadia Mono", "Consolas", monospace;
+      --sans: "Bahnschrift", "Arial Narrow", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; background: var(--bg); color: var(--ink); font-family: var(--sans); }
+    button, input, select { font: inherit; color: inherit; }
+    button, select, input { accent-color: var(--mint); }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+    .app { max-width: 1640px; margin: auto; padding: 18px clamp(12px, 2vw, 28px) 28px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-badge { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid var(--line); color: var(--mint); font-weight: 900; font-size: 15px; }
+    .brand-name { font-size: 12px; font-weight: 800; letter-spacing: 1.5px; }
+    .brand-sub { margin-top: 3px; color: var(--muted); font-size: 9px; letter-spacing: 1.2px; }
+    .connection { display: flex; align-items: center; justify-content: end; gap: 7px; flex-wrap: wrap; }
+    .connection select { width: min(230px, 44vw); }
+    .connection select, .control-select, .select { min-width: 0; height: 32px; padding: 0 9px; border: 1px solid var(--line); border-radius: 2px; background: var(--field-bg); font-size: 11px; }
+    .btn { min-height: 32px; padding: 0 11px; border: 1px solid var(--line); border-radius: 2px; background: var(--button-bg); color: var(--ink); font-size: 10px; font-weight: 700; letter-spacing: .55px; text-transform: uppercase; }
+    .btn:hover:not(:disabled) { border-color: var(--mint); color: var(--mint); }
+    .btn.primary { background: var(--button-primary); border-color: var(--button-primary-border); color: #fff; }
+    .btn.primary:hover:not(:disabled) { background: var(--button-primary-hover); color: #fff; }
+    .btn.warn { border-color: var(--button-warn-border); color: #f1a184; background: var(--button-warn-bg); }
+    .btn:disabled { opacity: .42; cursor: not-allowed; }
+    .status { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font: 10px var(--mono); white-space: nowrap; }
+    .led { width: 8px; height: 8px; border-radius: 50%; background: #777f78; box-shadow: 0 0 0 3px #ffffff0b; }
+    .led.on { background: #79c77e; box-shadow: 0 0 8px #79c77e88; }
+    .rack { position: relative; overflow: hidden; height: clamp(170px, 17vw, 220px); min-height: 170px; margin-bottom: 14px; border: 1px solid var(--line); background: var(--panel-3); box-shadow: inset 0 1px #ffffff12, 0 8px 24px #0005; --rack-accent: #38c8d2; --rack-accent-soft: #38c8d233; --rack-control-ink: #eaf3f0; --rack-lcd: #a3bc8c; }
+    .rack-photo { position: absolute; inset: 0 auto 0 0; width: 100%; background-position: center; background-size: cover; opacity: 1; mix-blend-mode: normal; }
+    .rack-face { position: absolute; inset: 0 auto 0 0; width: 100%; min-height: 0; background: none; }
+    .rack-display { position: absolute; left: 39.2%; top: 38%; width: 22.2%; height: 23%; min-height: 0; display: flex; flex-direction: column; justify-content: center; padding: 7px 10px; border: 3px solid #0d100e; background: var(--rack-lcd); color: #182118; box-shadow: inset 0 0 16px #32412d88; font-family: var(--mono); }
+    .lcd-line { overflow: hidden; font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+    .lcd-line + .lcd-line { margin-top: 7px; font-size: 10px; }
+    .rack-pushbutton { position: absolute; left: 4.4%; top: 19%; width: 6.2%; height: 24%; border: 2px solid #171a18; border-radius: 50%; background: #151917e8; color: var(--rack-accent); box-shadow: inset 0 1px 3px #ffffff55, 0 1px 2px #0009; font: 700 8px var(--mono); cursor: pointer; }
+    .rack-pushbutton[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--rack-accent), inset 0 1px 5px #000; }
+    .rack-knob-control { position: absolute; top: 45%; width: 5.8%; height: 36%; display: grid; justify-items: center; align-content: start; gap: 2px; color: var(--rack-control-ink); }
+    .rack-knob-control.volume { left: 5.8%; }
+    .rack-knob-control[data-index="0"] { left: 12.3%; }
+    .rack-knob-control[data-index="1"] { left: 18.4%; }
+    .rack-knob-control[data-index="2"] { left: 24.5%; }
+    .rack-knob-control[data-index="3"] { left: 30.6%; }
+    .rack-knob-face { position: relative; display: block; width: min(54px,82%); aspect-ratio: 1; border: 2px solid #aeb1aa; border-radius: 50%; background: radial-gradient(circle at 34% 28%, #555b56, #252b27 66%, #111411); box-shadow: inset 0 1px 3px #fff5, 0 2px 3px #000a; }
+    .rack-knob-face::before { content: ""; position: absolute; top: 5px; left: calc(50% - 1px); width: 2px; height: 28%; border-radius: 2px; background: var(--rack-accent); transform-origin: 50% calc(100% + 10px); transform: rotate(var(--knob-angle,0deg)); }
+    .rack-knob-caption { max-width: 100%; overflow: hidden; color: var(--rack-accent); font: 700 7px var(--mono); text-overflow: ellipsis; white-space: nowrap; }
+    .rack-knob-control output { color: #f7f5eb; font: 8px var(--mono); }
+    .rack-knob-control input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ns-resize; }
+    .rack-buttons { position: absolute; left: 65.6%; width: 17.4%; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); justify-items: center; align-items: center; }
+    .rack-buttons.top { top: 22%; height: 24%; }
+    .rack-buttons.bottom { top: 51%; height: 24%; }
+    .rack-command { width: min(42px,86%); aspect-ratio: 1; padding: 0; border: 2px solid #111512; border-radius: 50%; background: #1d221fd9; box-shadow: inset 0 1px 2px #ffffff88, 0 1px 3px #0009; color: var(--rack-accent); font-size: 11px; font-weight: 800; }
+    .rack-command:hover { outline: 2px solid var(--rack-accent); outline-offset: 1px; }
+    .rack-encoder { position: absolute; left: 84.1%; top: 17%; width: 10.2%; aspect-ratio: 1; display: grid; place-items: center; }
+    .rack-encoder button { position: relative; width: 100%; height: 100%; border: 3px solid #b5b7b0; border-radius: 50%; background: radial-gradient(circle at 37% 30%, #555c56, #222723 67%, #101310); box-shadow: inset 0 1px 4px #ffffff88, 0 2px 5px #000b; color: var(--rack-accent); cursor: ns-resize; touch-action: none; }
+    .rack-encoder button::before { content: ""; position: absolute; top: 6%; left: 49%; width: 2px; height: 18%; background: var(--rack-accent); transform-origin: 50% 230%; transform: rotate(var(--encoder-angle,0deg)); }
+    .rack-encoder output { position: relative; z-index: 1; font: 700 10px var(--mono); }
+    .rack-encoder-label { position: absolute; top: 105%; left: 0; width: 100%; color: var(--rack-accent); font: 700 7px var(--mono); text-align: center; }
+    .presetbar { display: grid; grid-template-columns: minmax(190px, 1.4fr) minmax(125px, .7fr) minmax(115px, .55fr) auto auto auto; gap: 8px; align-items: end; padding: 12px; border: 1px solid var(--line); background: var(--panel); }
+    .field { display: grid; gap: 5px; min-width: 0; }
+    .field label, .small-label { color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+    .field select, .field input, .small-input { width: 100%; height: 33px; padding: 0 9px; border: 1px solid var(--line); border-radius: 2px; background: var(--field-bg); font-size: 11px; }
+    .preset-name { min-width: 0; font: 12px var(--mono); color: var(--mint); }
+    .workspace { display: grid; grid-template-columns: 252px minmax(0, 1fr) 300px; gap: 12px; align-items: start; margin-top: 12px; }
+    .panel { min-width: 0; border: 1px solid var(--line); background: var(--panel); }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 13px; border-bottom: 1px solid var(--line); }
+    .panel-head h2, .panel-head h3 { margin: 0; font-family: Georgia, serif; font-weight: 500; letter-spacing: 0; }
+    .panel-head h2 { font-size: 17px; }
+    .panel-head h3 { font-size: 14px; }
+    .kicker { color: var(--muted); font: 9px var(--mono); text-transform: uppercase; }
+    .bass-panel { position: sticky; top: 10px; }
+    .bass-body { padding: 12px; display: grid; gap: 13px; }
+    .row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .row > * { min-width: 0; }
+    .row label { color: var(--muted); font-size: 10px; }
+    .row select { flex: 1; }
+    .toggle { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 10px; }
+    .toggle input { width: 15px; height: 15px; }
+    .bass-keyboard { height: 104px; }
+    .micro-keyboard { position: relative; display: flex; height: 100%; user-select: none; touch-action: none; }
+    .white-key { position: relative; flex: 1; min-width: 0; border: 1px solid #969e94; border-right: 0; border-radius: 0 0 3px 3px; background: linear-gradient(90deg,#f3f2e9,#d4d7cd); cursor: pointer; }
+    .white-key:last-child { border-right: 1px solid #969e94; }
+    .white-key.pressed { background: linear-gradient(color-mix(in srgb,var(--mint) 36%,#ffffff),color-mix(in srgb,var(--mint) 64%,#aeb5ab)); }
+    .black-key { position: absolute; z-index: 1; top: 0; width: 2%; height: 61%; transform: translateX(-50%); border: 1px solid #080a09; border-radius: 0 0 2px 2px; background: linear-gradient(90deg,#414944,#111512 70%); box-shadow: 0 3px 4px #0008; cursor: pointer; }
+    #bassKeys .black-key { width: 5%; }
+    .black-key.pressed { background: color-mix(in srgb,var(--mint) 68%,#17201b); }
+    .key-num { position: absolute; bottom: 4px; left: 0; width: 100%; color: #565e56; font: 8px var(--mono); text-align: center; pointer-events: none; }
+    .black-key .key-num { color: #e4e9e2; bottom: 2px; font-size: 7px; }
+    .store-row { display: grid; grid-template-columns: 1fr auto; gap: 7px; }
+    .custom-status { color: var(--muted); font: 9px var(--mono); line-height: 1.4; }
+    .bass-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+    .chord-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+    .main-panel { overflow: hidden; }
+    .layers { display: flex; gap: 5px; padding: 10px 12px 0; border-bottom: 1px solid var(--line); }
+    .layer-tab, .group-tab { min-height: 31px; padding: 0 12px; border: 1px solid transparent; border-bottom: 0; background: transparent; color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .8px; }
+    .layer-tab[aria-selected="true"] { background: var(--panel-2); border-color: var(--line); color: var(--mint); }
+    .group-tabs { display: flex; gap: 3px; overflow-x: auto; padding: 9px 12px; background: var(--panel); }
+    .group-tab { min-height: 27px; padding: 0 9px; white-space: nowrap; }
+    .group-tab[aria-selected="true"] { color: var(--amber); background: var(--panel-3); border-color: var(--line); }
+    .layer-summary { display: flex; justify-content: space-between; gap: 12px; padding: 9px 13px; border-bottom: 1px solid var(--line); color: var(--muted); font: 9px var(--mono); }
+    .layer-summary strong { color: var(--mint); font-weight: 500; }
+    .parameter-area { padding: 12px; }
+    .param-title { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 10px; color: var(--muted); font-size: 9px; letter-spacing: 1px; text-transform: uppercase; }
+    .param-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 7px; max-height: 385px; overflow: auto; padding-right: 3px; }
+    .param { display: grid; grid-template-columns: minmax(78px, .9fr) minmax(55px, 1.2fr) 49px; align-items: center; gap: 8px; min-height: 39px; padding: 5px 8px; border: 1px solid #39423c; background: var(--panel-2); }
+    .param label { overflow: hidden; color: var(--control-text); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+    .param input[type="range"] { min-width: 0; width: 100%; height: 16px; margin: 0; }
+    .param input[type="number"] { width: 49px; height: 25px; padding: 0 4px; border: 1px solid var(--line); background: var(--field-bg); color: var(--mint); font: 10px var(--mono); text-align: right; }
+    .param select { grid-column: 2 / 4; width: 100%; height: 25px; padding: 0 5px; border: 1px solid var(--line); background: var(--field-bg); font-size: 10px; }
+    .param .param-id { grid-column: 1 / -1; color: var(--dim); font: 8px var(--mono); }
+    .group-note { margin: 0 0 9px; color: var(--muted); font-size: 10px; line-height: 1.45; }
+    .fx-body { padding: 12px; }
+    .fx-selects { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 11px; }
+    .fx-grid { display: grid; gap: 6px; }
+    .global-control { display: grid; grid-template-columns: minmax(75px, 1fr) minmax(60px, 1.1fr) 42px; align-items: center; gap: 7px; min-height: 31px; padding: 4px 7px; background: var(--panel-2); border: 1px solid var(--line); }
+    .global-control label { color: var(--control-text); font-size: 9px; }
+    .global-control input[type="range"] { width: 100%; min-width: 0; height: 14px; margin: 0; }
+    .global-control input[type="number"] { width: 42px; height: 23px; padding: 0 3px; border: 1px solid var(--line); background: var(--field-bg); color: var(--mint); font: 9px var(--mono); text-align: right; }
+    .fx-flow { margin: 9px 0 0; padding: 8px; border: 1px dashed var(--line); color: var(--muted); font: 9px var(--mono); text-align: center; }
+    .utility-panel { margin-top: 12px; }
+    .utility-body { padding: 11px 12px; display: grid; gap: 11px; }
+    .tempo-block { display: grid; grid-template-columns: auto minmax(70px,1fr) 55px; align-items: center; gap: 10px; }
+    .tempo-value { color: var(--amber); font: 16px var(--mono); text-align: right; }
+    .monitor { height: 168px; overflow: auto; background: var(--monitor-bg); border: 1px solid var(--line); padding: 7px; font: 9px/1.5 var(--mono); }
+    .monitor-line { display: grid; grid-template-columns: 49px minmax(0,1fr); gap: 7px; padding: 2px 0; border-bottom: 1px solid #ffffff0b; }
+    .monitor-line .time { color: #7c8980; }
+    .monitor-line .msg { overflow-wrap: anywhere; color: var(--monitor-text); }
+    .monitor-line.in .msg { color: var(--blue); }
+    .monitor-line.warn .msg { color: var(--warning-text); }
+    .monitor-tools { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .monitor-tools select { width: 100%; }
+    .cc-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 5px; }
+    .cc-cell { display: grid; grid-template-columns: minmax(0,1fr) 35px; align-items: center; gap: 3px 5px; padding: 5px; border: 1px solid var(--line); background: var(--panel-2); }
+    .cc-cell label { overflow: hidden; color: var(--control-text); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+    .cc-cell input[type="range"] { grid-column: 1 / -1; width: 100%; height: 13px; margin: 0; }
+    .cc-cell input[type="number"] { width: 35px; height: 21px; padding: 0 2px; border: 1px solid var(--line); background: var(--field-bg); color: var(--amber); font: 8px var(--mono); text-align: center; }
+    .cc-note { color: var(--muted); font-size: 9px; line-height: 1.4; }
+    .bottom-section { margin-top: 14px; border: 1px solid var(--line); background: var(--panel); }
+    .bottom-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 13px; border-bottom: 1px solid var(--line); }
+    .bottom-head h2 { margin: 0; font: 500 17px Georgia, serif; }
+    .five-octaves { height: 166px; padding: 0 13px 13px; }
+    .five-octaves .micro-keyboard { height: 100%; }
+    .five-octaves .black-key { width: 1.8%; height: 59%; }
+    .key-capture.active { border-color: var(--amber); color: var(--amber); }
+    .empty-note { padding: 12px; color: var(--muted); font-size: 10px; }
+    dialog { width: min(440px, calc(100vw - 28px)); padding: 0; border: 1px solid var(--line); background: var(--panel); color: var(--ink); box-shadow: 0 20px 70px #000b; }
+    dialog::backdrop { background: #050706b8; }
+    .dialog-head { padding: 14px 16px; border-bottom: 1px solid var(--line); }
+    .dialog-head h2 { margin: 0; font: 500 20px Georgia,serif; }
+    .dialog-body { display: grid; gap: 12px; padding: 16px; }
+    .dialog-foot { display: flex; justify-content: end; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); }
+    .warning-copy { color: var(--warning-text); font-size: 10px; line-height: 1.5; }
+    .patch-dialog { width: min(1160px, calc(100vw - 24px)); height: min(90vh, 820px); max-width: 1160px; max-height: 90vh; }
+    .patch-dialog form { height: 100%; display: flex; flex-direction: column; }
+    .patch-toolbar { display: grid; grid-template-columns: minmax(150px,1fr) 100px minmax(180px,1.3fr) auto; gap: 8px; align-items: end; }
+    .patch-list { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 4px 6px; overflow: auto; padding: 8px 12px; }
+    .patch-item { display: grid; grid-template-columns: 34px minmax(0,1fr); align-items: center; gap: 6px; min-height: 32px; padding: 3px 6px; border: 1px solid var(--line); border-radius: 2px; background: var(--panel-2); color: var(--ink); text-align: left; cursor: pointer; }
+    .patch-item:hover, .patch-item:focus-visible { border-color: var(--rack-accent,var(--mint)); background: var(--panel-3); }
+    .patch-number { color: var(--rack-accent,#a9d8a4); font: 700 12px var(--mono); }
+    .patch-label { overflow: hidden; color: #dce2da; font-size: 14px; line-height: 1.05; text-overflow: ellipsis; white-space: nowrap; }
+    .patch-status { color: var(--muted); font: 9px var(--mono); }
+    .rack-display { cursor: pointer; }
+    .rack-display:hover { outline: 2px solid var(--rack-accent); outline-offset: 2px; }
+    .hidden { display: none !important; }
+    @media (max-width: 1180px) {
+      .workspace { grid-template-columns: 230px minmax(0,1fr); }
+      .right-column { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; align-items: start; gap: 12px; }
+      .utility-panel { margin-top: 0; }
+    }
+    @media (max-width: 760px) {
+      .app { padding: 12px 10px 20px; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .connection { width: 100%; justify-content: flex-start; }
+      .connection select { width: min(210px, 55vw); }
+      .rack { height: 190px; min-height: 190px; overflow-x: auto; overflow-y: hidden; }
+      .rack-photo, .rack-face { width: max(100%,760px); }
+      .rack-display { padding: 5px; border-width: 3px; }
+      .lcd-line { font-size: 9px; }
+      .lcd-line + .lcd-line { margin-top: 4px; font-size: 8px; }
+      .rack-knob-control { width: 5.8%; }
+      .rack-knob-face { width: min(45px,82%); }
+      .rack-command { width: min(38px,86%); font-size: 9px; }
+      .presetbar { grid-template-columns: 1fr 1fr; }
+      .workspace { grid-template-columns: 1fr; }
+      .bass-panel { position: static; }
+      .bass-body { grid-template-columns: 1fr 1fr; }
+      .bass-body > .bass-wide { grid-column: 1 / -1; }
+      .right-column { grid-column: auto; grid-template-columns: 1fr; }
+      .param-grid { grid-template-columns: 1fr; max-height: 410px; }
+      .five-octaves { height: 130px; overflow-x: auto; }
+      .five-octaves .micro-keyboard { min-width: 820px; }
+      .patch-toolbar { grid-template-columns: minmax(0,1fr) 100px; }
+      .patch-toolbar .field:nth-child(3), .patch-toolbar .btn { grid-column: 1 / -1; }
+      .patch-list { grid-template-columns: repeat(2,minmax(0,1fr)); padding: 7px 10px; }
+    }
+    @media (max-width: 450px) {
+      .rack { height: 180px; min-height: 180px; }
+      .bass-body { grid-template-columns: 1fr; }
+      .bass-body > .bass-wide { grid-column: auto; }
+      .tempo-block { grid-template-columns: auto 1fr 48px; }
+      .five-octaves .micro-keyboard { min-width: 700px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *,*::before,*::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand"><div class="brand-badge">E</div><div><div class="brand-name">EMU CONTROL DESK</div><div class="brand-sub">E-MU FAMILY · WEB MIDI EDITOR</div></div></div>
+      <div class="connection">
+        <span class="status"><i class="led" id="midiLed"></i><span id="midiStatus">MIDI offline</span></span>
+        <select id="module" aria-label="E-MU module model" title="Select connected E-MU module"><option value="proteus">Proteus 2000</option><option value="audity">Audity 2000</option><option value="virtuoso">Virtuoso 2000</option><option value="xlead">Xtreme Lead-1</option><option value="mophatt">Mo'Phatt</option></select>
+        <select id="midiOut" aria-label="MIDI output"><option value="">MIDI output</option></select>
+        <select id="midiIn" aria-label="MIDI input"><option value="">MIDI input</option></select>
+        <button class="btn primary" id="enableMidi">Enable MIDI + SysEx</button>
+        <select id="channel" aria-label="MIDI channel"></select>
+        <select id="deviceId" aria-label="SysEx device ID" title="Proteus SysEx device ID"></select>
+        <label class="toggle"><input id="midiThru" type="checkbox"> Thru</label>
+      </div>
+    </header>
+
+    <section class="rack" aria-label="Selected E-MU module photo with display and MIDI controls">
+      <div class="rack-photo" id="rackPhoto"></div>
+      <div class="rack-face">
+        <div class="rack-display" id="patchDisplay" role="button" tabindex="0" aria-label="Open patch select"><div class="lcd-line" id="lcdName">USER 000 · INITIAL PATCH</div><div class="lcd-line" id="lcdDetail">CHANNEL 01&nbsp;&nbsp; LAYERS A-D</div></div>
+        <div class="rack-left-controls" aria-label="Front-panel performance controls">
+          <button class="rack-pushbutton" id="rackControlBank" type="button" aria-label="Change controller bank" aria-pressed="false" title="Switch between A–D, E–H, and I–L controller banks"><span>CTRL</span><output id="rackBankLabel">A-D</output></button>
+          <label class="rack-knob-control volume"><span class="rack-knob-face"><i></i></span><span class="rack-knob-caption">VOLUME</span><output id="rackValueVolume">100</output><input id="rackVolume" type="range" min="0" max="127" value="100" aria-label="Volume rotary control"></label>
+          <label class="rack-knob-control" data-index="0"><span class="rack-knob-face"><i></i></span><span class="rack-knob-caption" id="rackLabelA">A · TONE</span><output id="rackValueA">64</output><input id="rackControllerA" type="range" min="0" max="127" value="64" aria-label="Controller A rotary control"></label>
+          <label class="rack-knob-control" data-index="1"><span class="rack-knob-face"><i></i></span><span class="rack-knob-caption" id="rackLabelB">B · PRESENCE</span><output id="rackValueB">64</output><input id="rackControllerB" type="range" min="0" max="127" value="64" aria-label="Controller B rotary control"></label>
+          <label class="rack-knob-control" data-index="2"><span class="rack-knob-face"><i></i></span><span class="rack-knob-caption" id="rackLabelC">C · SHAPE</span><output id="rackValueC">64</output><input id="rackControllerC" type="range" min="0" max="127" value="64" aria-label="Controller C rotary control"></label>
+          <label class="rack-knob-control" data-index="3"><span class="rack-knob-face"><i></i></span><span class="rack-knob-caption" id="rackLabelD">D · IMAGE</span><output id="rackValueD">64</output><input id="rackControllerD" type="range" min="0" max="127" value="64" aria-label="Controller D rotary control"></label>
+        </div>
+        <div class="rack-buttons top" aria-label="Master, edit, and cursor controls">
+          <button class="rack-command" type="button" data-panel-button="1" title="Master" aria-label="Master">M</button><button class="rack-command" type="button" data-panel-button="2" title="Edit" aria-label="Edit">E</button><button class="rack-command" type="button" data-panel-button="32" title="Cursor left" aria-label="Cursor left">&#8249;</button><button class="rack-command" type="button" data-panel-button="33" title="Cursor right" aria-label="Cursor right">&#8250;</button>
+        </div>
+        <div class="rack-buttons bottom" aria-label="Audition, multi, save, and enter controls">
+          <button class="rack-command" type="button" data-panel-button="4" title="Audition" aria-label="Audition">AU</button><button class="rack-command" type="button" data-panel-button="3" title="Multi" aria-label="Multi">MU</button><button class="rack-command" type="button" data-panel-button="16" title="Save or copy" aria-label="Save or copy">S</button><button class="rack-command" type="button" data-panel-button="17" title="Home or enter" aria-label="Home or enter">&#8629;</button>
+        </div>
+        <div class="rack-encoder"><button id="valueEncoder" type="button" aria-label="Rotary value encoder" title="Drag vertically or use the wheel to turn; click to enter"><output id="encoderValue">64</output></button><span class="rack-encoder-label">VALUE</span></div>
+      </div>
+    </section>
+
+    <section class="presetbar" aria-label="Preset selection and librarian">
+      <div class="field"><label for="presetName">Current preset</label><div class="preset-name" id="presetName">No preset read</div></div>
+      <div class="field"><label for="rom">ROM / bank family</label><select id="rom"><option value="0">User RAM</option><option value="4">Composer</option><option value="1">Expansion ROM 1</option><option value="2">Expansion ROM 2</option><option value="3">Expansion ROM 3</option></select></div>
+      <div class="field"><label for="bank">Bank / program</label><div class="row"><input id="bank" class="small-input" type="number" min="0" max="3" value="0" aria-label="Preset bank"><input id="program" class="small-input" type="number" min="0" max="127" value="0" aria-label="Preset program"></div></div>
+      <button class="btn" id="getPreset" type="button">Get from synth</button>
+      <button class="btn primary" id="storePreset" type="button">Store to synth</button>
+      <button class="btn" id="requestName" type="button">Read name</button>
+    </section>
+
+    <div class="workspace">
+      <aside class="panel bass-panel" aria-label="Bass arpeggiator">
+        <div class="panel-head"><h2>Bass station</h2><span class="kicker">2 OCT · MIDI</span></div>
+        <div class="bass-body">
+          <div class="row bass-wide"><label for="bassMode">Arp</label><select class="control-select" id="bassMode"><option value="none">None</option><option value="up">Up</option><option value="down">Down</option><option value="updown">Up / down</option><option value="octave">Octave</option><option value="chord">Chord</option><option value="custom">Custom keys</option></select></div>
+          <label class="toggle"><input id="bassLatch" type="checkbox"> Latch</label>
+          <div class="row"><label for="bassRate">Step</label><select class="control-select" id="bassRate"><option value="4">1/4</option><option value="2">1/8</option><option value="1">1/16</option><option value="8">1/2</option></select></div>
+          <label class="toggle"><input id="bassChord" type="checkbox"> Chord tones</label>
+          <div class="bass-keyboard bass-wide"><div class="micro-keyboard" id="bassKeys" aria-label="Bass two octave keyboard"></div></div>
+          <div class="store-row bass-wide"><select class="control-select" id="customTarget" aria-label="Custom keys target"><option value="bass">Bass arp keys</option><option value="main">Main melody arp keys</option></select><button class="btn" id="storeKeys" type="button">Store keys</button></div>
+          <div class="custom-status bass-wide" id="customStatus">Bass: no custom notes · Main: no custom notes</div>
+          <div class="bass-tools bass-wide"><button class="btn primary" id="bassStart" type="button">Start</button><button class="btn warn" id="bassStop" type="button" disabled>Stop</button></div>
+          <div class="chord-controls bass-wide"><div class="field"><label for="chordQuality">Chord</label><select class="control-select" id="chordQuality"><option value="off">Off</option><option value="major">Major</option><option value="minor">Minor</option></select></div><div class="field"><label for="chordInversion">Voicing</label><select class="control-select" id="chordInversion"><option value="0">Root position</option><option value="1">1st inversion</option><option value="2">2nd inversion</option></select></div></div>
+          <button class="btn key-capture bass-wide" id="captureToggle" type="button">Capture clicked keys</button>
+        </div>
+      </aside>
+
+      <section class="panel main-panel" aria-label="Four layer voice editor">
+        <div class="panel-head"><h2>Preset voice</h2><span class="kicker" id="layerMode">EDIT BUFFER · SYSEx PARAMETER EDITS</span></div>
+        <div class="layers" role="tablist" aria-label="Voice layer">
+          <button class="layer-tab" role="tab" aria-selected="true" data-layer="0">A</button><button class="layer-tab" role="tab" aria-selected="false" data-layer="1">B</button><button class="layer-tab" role="tab" aria-selected="false" data-layer="2">C</button><button class="layer-tab" role="tab" aria-selected="false" data-layer="3">D</button>
+        </div>
+        <div class="layer-summary"><span>Layer <strong id="activeLayerLabel">A</strong> · <strong id="layerInstrument">Instrument 0</strong></span><span id="dirtyState">SYNCED</span></div>
+        <div class="group-tabs" role="tablist" aria-label="Voice parameter group">
+          <button class="group-tab" aria-selected="true" data-group="voice">Voice</button><button class="group-tab" aria-selected="false" data-group="filter">Filter</button><button class="group-tab" aria-selected="false" data-group="envelopes">Envelopes</button><button class="group-tab" aria-selected="false" data-group="lfos">LFOs</button><button class="group-tab" aria-selected="false" data-group="cords">Patch cords</button>
+        </div>
+        <div class="parameter-area"><p class="group-note" id="groupNote">Per-layer instrument, level, pan, key/velocity ranges, tuning, chorus, glide and playback behavior.</p><div class="param-grid" id="paramGrid"></div></div>
+      </section>
+
+      <div class="right-column">
+        <section class="panel fx-panel" aria-label="Preset effects">
+          <div class="panel-head"><h2>Effects rack</h2><span class="kicker">PRESET A / B</span></div>
+          <div class="fx-body">
+            <div class="fx-selects"><div class="field"><label for="fxA">Effect A · space</label><select id="fxA" class="control-select"></select></div><div class="field"><label for="fxB">Effect B · motion</label><select id="fxB" class="control-select"></select></div></div>
+            <div class="fx-grid" id="fxGrid"></div><div class="fx-flow">LAYER BUS 1–4 → EFFECT B → EFFECT A → MAIN OUT</div>
+          </div>
+        </section>
+        <section class="panel utility-panel" aria-label="Master tempo and MIDI monitor">
+          <div class="panel-head"><h2>Tempo & MIDI monitor</h2><span class="kicker" id="clockStatus">NO MIDI CLOCK</span></div>
+          <div class="utility-body">
+            <div class="tempo-block"><span class="small-label">Master BPM</span><input id="tempo" type="range" min="0" max="300" value="120"><output class="tempo-value" id="tempoValue">120</output></div>
+            <div class="row"><label class="toggle"><input id="arpEnabled" type="checkbox"> Preset arp</label><label class="toggle"><input id="arpLatch" type="checkbox"> Latch</label><select class="control-select" id="arpMode" aria-label="Hardware arpeggiator mode"><option value="0">Up</option><option value="1">Down</option><option value="2">Up / down</option><option value="3">Forward assign</option><option value="4">Backward assign</option><option value="5">Forward / backward</option><option value="6">Random</option><option value="7">Pattern</option></select></div>
+            <div class="small-label">Live MIDI A–L · CC patch-cord controls</div><div class="cc-grid" id="ccGrid"></div><div class="cc-note">Proteus preset parameters use SysEx edits. These CCs feed the unit's MIDI A–L modulation sources; NRPN is not its preset-edit protocol.</div>
+            <div class="monitor-tools"><select id="monitorFilter" class="control-select" aria-label="Monitor filter"><option value="all">All MIDI messages</option><option value="sysex">SysEx only</option><option value="channel">Channel messages</option></select><button class="btn" id="clearMonitor" type="button">Clear</button></div>
+            <div class="monitor" id="monitor" aria-live="polite"></div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <section class="bottom-section" aria-label="Five octave MIDI keyboard">
+      <div class="bottom-head"><h2>Performance keyboard</h2><div class="row"><span class="kicker">C2–B6 · 5 OCTAVES</span><label class="toggle"><input id="mainArp" type="checkbox"> Main arp</label><label class="toggle"><input id="mainLatch" type="checkbox"> Latch</label></div></div>
+      <div class="five-octaves"><div class="micro-keyboard" id="mainKeys"></div></div>
+    </section>
+
+    <dialog id="storeDialog">
+      <form method="dialog" id="storeForm">
+        <div class="dialog-head"><h2>Store preset to User RAM</h2></div>
+        <div class="dialog-body">
+          <p class="warning-copy">The selected User RAM slot will be overwritten. ROM presets cannot be written; choose a User bank and slot.</p>
+          <div class="field"><label for="saveName">Preset name · max 12 characters</label><input id="saveName" maxlength="12" value="New Preset" required></div>
+          <div class="row"><div class="field"><label for="saveCategory">Category (3 letters)</label><input id="saveCategory" maxlength="3" value="syn" required></div><div class="field"><label for="saveBank">User bank</label><select id="saveBank"><option value="0">User 0</option><option value="1">User 1</option><option value="2">User 2</option><option value="3">User 3</option></select></div><div class="field"><label for="saveSlot">Slot</label><input id="saveSlot" type="number" min="0" max="127" value="0" required></div></div>
+        </div>
+        <div class="dialog-foot"><button class="btn" value="cancel">Cancel</button><button class="btn primary" id="confirmStore" value="default">Write preset</button></div>
+      </form>
+    </dialog>
+
+    <dialog id="noticeDialog"><form method="dialog"><div class="dialog-head"><h2 id="noticeTitle">MIDI notice</h2></div><div class="dialog-body"><p id="noticeBody" class="warning-copy"></p></div><div class="dialog-foot"><button class="btn primary" value="ok">OK</button></div></form></dialog>
+    <dialog id="patchDialog" class="patch-dialog" aria-labelledby="patchTitle">
+      <form method="dialog" id="patchForm">
+        <div class="dialog-head"><div class="row"><h2 id="patchTitle">Patch select</h2><span class="patch-status" id="patchStatus">128 programs · names not fetched</span></div></div>
+        <div class="dialog-body patch-toolbar">
+          <div class="field"><label for="patchRom">ROM</label><select class="control-select" id="patchRom"></select></div>
+          <div class="field"><label for="patchBank">Bank</label><input id="patchBank" type="number" min="0" max="127" value="0"></div>
+          <div class="field"><label for="patchSearch">Search patches</label><input id="patchSearch" type="search" placeholder="Name or program number"></div>
+          <button class="btn" id="fetchPatchNames" type="button">Fetch bank names</button>
+        </div>
+        <div class="patch-list" id="patchList" role="listbox" aria-label="Programs in selected ROM bank"></div>
+        <div class="dialog-foot"><button class="btn" value="cancel">Close</button></div>
+      </form>
+    </dialog>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+      const $ = (id) => document.getElementById(id);
+      const layerNames = ["A", "B", "C", "D"];
+      const modulePalettes = {
+        proteus:{"--bg":"#111719","--panel":"#1c2528","--panel-2":"#253135","--panel-3":"#303e42","--line":"#43545a","--ink":"#edf4f2","--muted":"#9eafb3","--mint":"#31c7d4","--amber":"#d3b85d","--red":"#df7358","--blue":"#82c4d2","--field-bg":"#12191b","--button-bg":"#2d393c","--button-primary":"#146f79","--button-primary-border":"#258a94","--button-primary-hover":"#1d919c","--button-warn-bg":"#3a2927","--button-warn-border":"#87534c","--control-text":"#c4d2d4","--dim":"#829397","--monitor-bg":"#0b1214","--monitor-text":"#c4dedc","--monitor-in":"#91c7d7","--warning-text":"#e8ad92","--warning-bg":"#202623"},
+        audity:{"--bg":"#101820","--panel":"#192832","--panel-2":"#20333e","--panel-3":"#2a414e","--line":"#426171","--ink":"#edf5f7","--muted":"#9cb6c1","--mint":"#35cce0","--amber":"#eb756b","--red":"#e66a63","--blue":"#75c6dc","--field-bg":"#111b22","--button-bg":"#293d48","--button-primary":"#126e82","--button-primary-border":"#258da3","--button-primary-hover":"#168ca2","--button-warn-bg":"#402c32","--button-warn-border":"#995958","--control-text":"#c3d6dc","--dim":"#809ca7","--monitor-bg":"#0b141a","--monitor-text":"#c0e0e5","--monitor-in":"#92cadd","--warning-text":"#f0a99a","--warning-bg":"#2b252b"},
+        virtuoso:{"--bg":"#181918","--panel":"#232522","--panel-2":"#2c2f2a","--panel-3":"#393a32","--line":"#55574b","--ink":"#f2f0e5","--muted":"#b0b09f","--mint":"#e2b447","--amber":"#78c4b8","--red":"#dd7965","--blue":"#83c2c2","--field-bg":"#191b19","--button-bg":"#373930","--button-primary":"#85651e","--button-primary-border":"#a9822a","--button-primary-hover":"#a07c25","--button-warn-bg":"#3d2924","--button-warn-border":"#885747","--control-text":"#d5d3c7","--dim":"#919185","--monitor-bg":"#111310","--monitor-text":"#d5e0c3","--monitor-in":"#99c8ca","--warning-text":"#eab08c","--warning-bg":"#292722"},
+        xlead:{"--bg":"#181914","--panel":"#23251e","--panel-2":"#2d3025","--panel-3":"#393c2e","--line":"#5b5b43","--ink":"#f5f2df","--muted":"#b5b295","--mint":"#f0d51e","--amber":"#64c9d5","--red":"#db715a","--blue":"#70c6d0","--field-bg":"#191a14","--button-bg":"#383a2a","--button-primary":"#857316","--button-primary-border":"#a38d20","--button-primary-hover":"#a28b18","--button-warn-bg":"#402922","--button-warn-border":"#96604b","--control-text":"#e0ddc5","--dim":"#97947c","--monitor-bg":"#11120d","--monitor-text":"#e6e2b6","--monitor-in":"#9dd2d3","--warning-text":"#e9ad83","--warning-bg":"#2b291e"},
+        mophatt:{"--bg":"#12191c","--panel":"#1d282c","--panel-2":"#263439","--panel-3":"#33434a","--line":"#4b6269","--ink":"#edf4f5","--muted":"#a4b9be","--mint":"#69c5df","--amber":"#e4ad70","--red":"#d97565","--blue":"#7ec8dc","--field-bg":"#131c20","--button-bg":"#2c3b40","--button-primary":"#256d82","--button-primary-border":"#3d8da4","--button-primary-hover":"#328da6","--button-warn-bg":"#3d2c2a","--button-warn-border":"#8a5c50","--control-text":"#cad9dc","--dim":"#879ea4","--monitor-bg":"#0c1417","--monitor-text":"#c5e0e4","--monitor-in":"#91c7da","--warning-text":"#edb08f","--warning-bg":"#292727"}
+      };
+      const moduleProfiles = {
+        proteus:{name:"Proteus 2000",photo:"EMU-PROTEUS-2000.jpg",note:"128-VOICE SOUND MODULE",accent:"#21c6d3",lcd:"#a3bc8c",palette:modulePalettes.proteus},
+        audity:{name:"Audity 2000",photo:"EMU-AUDITY-2000.jpg",note:"128-VOICE SOUND MODULE",accent:"#16d5e5",lcd:"#a8c28e",palette:modulePalettes.audity},
+        virtuoso:{name:"Virtuoso 2000",photo:"EMU-VIRTUOSO-2000.jpg",note:"128-VOICE VIRTUAL ORCHESTRA",accent:"#e7af38",lcd:"#9bc07d",palette:modulePalettes.virtuoso},
+        xlead:{name:"Xtreme Lead-1",photo:"EMU-XTREME-LEAD-1.jpg",note:"64-VOICE ROM SYNTHESIZER",accent:"#f4d11d",lcd:"#a8bd87",palette:modulePalettes.xlead},
+        mophatt:{name:"Mo'Phatt",photo:"EMU-PROTEUS-2000.jpg",note:"PROTEUS FAMILY · PROTEUS PHOTO FALLBACK",accent:"#67c1da",lcd:"#a3bc8c",palette:modulePalettes.mophatt}
+      };
+      const filterTypes = [
+        [127,"Off"],[0,"Classic · 4 LPF"],[1,"Smooth · 2 LPF"],[2,"Steeper · 6 LPF"],[260,"MegaSweepz · 12 LPF"],[261,"EarlyRizer · 12 LPF"],[262,"Millennium · 12 LPF"],[264,"KlubKlassik · 12 LPF"],[265,"BassBox-303 · 12 LPF"],[8,"Shallow · 2 HPF"],[9,"Deeper · 4 HPF"],[16,"Band-pass 1 · 2 BPF"],[17,"Band-pass 2 · 4 BPF"],[18,"ContraBand · 6 BPF"],[32,"Swept 1 · EQ+"],[33,"Swept 2 · EQ+"],[34,"Swept 3 · EQ+"],[274,"DJAlkaline · EQ+"],[259,"AceOfBass · EQ+"],[268,"TB-Or-Not-T · EQ+"],[270,"BolandBass · EQ+"],[275,"BassTracer · EQ+"],[276,"RogueHertz · EQ+"],[277,"RazorBlades · EQ-"],[278,"RadioCraze · EQ-"],[80,"Aah-Ay-Eeh · VOW"],[81,"Ooh-To-Aah · VOW"],[271,"MultiQVox · VOW"],[269,"Ooh-To-Eee · VOW"],[272,"TalkingHedz · VOW"],[279,"Eeh-To-Aah · VOW"],[280,"UbuOrator · VOW"],[281,"DeepBouche · VOW"],[64,"PhazeShift1 · PHA"],[65,"PhazeShift2 · PHA"],[282,"FreakShifta · PHA"],[283,"CruzPusher · PHA"],[72,"FlangerLite · FLG"],[284,"AngelzHairz · FLG"],[285,"DreamWeava · FLG"],[263,"MeatyGizmo · REZ"],[267,"DeadRinger · REZ"],[273,"ZoomPeaks · REZ"],[286,"AcidRavage · REZ"],[287,"BassOMatic · REZ"],[288,"LucifersQ · REZ"],[289,"ToothComb · REZ"],[290,"EarBender · WAH"],[266,"FuzziFace · DST"],[66,"BlissBatz · PHA"],[291,"KlangKling · SFX"]
+      ];
+      const fxANames = ["Master effect A","Room 1","Room 2","Room 3","Hall 1","Hall 2","Plate","Delay","Panning Delay","Multitap 1","Multitap Pan","3 Tap","3 Tap Pan","Soft Room","Warm Room","Perfect Room","Tiled Room","Hard Plate","Warm Hall","Spacious Hall","Bright Hall","Bright Hall Pan","Bright Plate","BBall Court","Gymnasium","Cavern","Concert 9","Concert 10 Pan","Reverse Gate","Gate 2","Gate Pan","Concert 11","Medium Concert","Large Concert","Large Concert Pan","Canyon","DelayVerb 1","DelayVerb 2","DelayVerb 3","DelayVerb 4 Pan","DelayVerb 5 Pan","DelayVerb 6","DelayVerb 7","DelayVerb 8","DelayVerb 9"];
+      const fxBNames = ["Master effect B","Chorus 1","Chorus 2","Chorus 3","Chorus 4","Chorus 5","Doubling","Slapback","Flange 1","Flange 2","Flange 3","Flange 4","Flange 5","Flange 6","Flange 7","Big Chorus","Symphonic","Ensemble","Delay","Delay Stereo","Delay Stereo 2","Panning Delay","Delay Chorus","Pan Delay Chorus 1","Pan Delay Chorus 2","Dual Tap 1/3","Dual Tap 1/4","Vibrato","Distortion 1","Distortion 2","Distorted Flange","Distorted Chorus","Distorted Double"];
+      const layerParams = [
+        {id:1409,n:"Instrument",min:0,max:16383,v:0},{id:1439,n:"Instrument ROM",min:0,max:255,v:0},
+        {id:1410,n:"Volume (dB)",min:-96,max:10,v:0},{id:1411,n:"Pan",min:-64,max:63,v:0},{id:1412,n:"Mix output",min:0,max:2,v:0,o:[[0,"Main"],[1,"Sub 1"],[2,"Sub 2"]]},
+        {id:1413,n:"Key low",min:0,max:127,v:0},{id:1414,n:"Key low fade",min:0,max:127,v:0},{id:1415,n:"Key high",min:0,max:127,v:127},{id:1416,n:"Key high fade",min:0,max:127,v:0},
+        {id:1417,n:"Velocity low",min:0,max:127,v:0},{id:1418,n:"Velocity low fade",min:0,max:127,v:0},{id:1419,n:"Velocity high",min:0,max:127,v:127},{id:1420,n:"Velocity high fade",min:0,max:127,v:0},
+        {id:1421,n:"Real-time low",min:0,max:127,v:0},{id:1422,n:"Real-time low fade",min:0,max:127,v:0},{id:1423,n:"Real-time high",min:0,max:127,v:127},{id:1424,n:"Real-time high fade",min:0,max:127,v:0},
+        {id:1425,n:"Coarse tune",min:-36,max:36,v:0},{id:1426,n:"Fine tune",min:-64,max:64,v:0},{id:1427,n:"Chorus amount",min:0,max:100,v:0},{id:1428,n:"Chorus width",min:0,max:100,v:100},
+        {id:1429,n:"Transpose",min:-36,max:36,v:0},{id:1430,n:"Non-transpose",min:0,max:1,v:0,o:[[0,"Off"],[1,"On"]]},{id:1431,n:"Pitch bend range",min:-1,max:12,v:-1},
+        {id:1432,n:"Glide rate",min:0,max:127,v:0},{id:1433,n:"Glide curve",min:0,max:8,v:0},{id:1434,n:"Sample loop",min:0,max:1,v:0,o:[[0,"Off"],[1,"On"]]},
+        {id:1435,n:"Layer delay",min:-25,max:127,v:0},{id:1436,n:"Sound start",min:0,max:127,v:0},{id:1437,n:"Solo mode",min:0,max:8,v:0},{id:1438,n:"Assign group",min:0,max:23,v:0}
+      ];
+      const filterParams = [{id:1537,n:"Z-plane filter",min:0,max:291,v:0,o:filterTypes},{id:1538,n:"Frequency / morph",min:0,max:255,v:255},{id:1539,n:"Q / resonance",min:0,max:127,v:0}];
+      const lfoShapes = [[-1,"Random"],[0,"Triangle"],[1,"Sine"],[2,"Sawtooth"],[3,"Square"],[4,"33% pulse"],[5,"25% pulse"],[6,"16% pulse"],[7,"12% pulse"],[8,"Pattern: octaves"],[9,"Pattern: fifth + octave"],[10,"Pattern: sus4 triplet"],[11,"Pattern: neener"],[12,"Sine 1,2"],[13,"Sine 1,3,5"],[14,"Sine + noise"],[15,"Hemi-quaver"]];
+      const lfoParams = [];
+      for (let lfo = 0; lfo < 2; lfo += 1) {
+        const start = 1665 + lfo * 5;
+        lfoParams.push({id:start,n:`LFO ${lfo+1} rate`,min:-25,max:127,v:60});
+        lfoParams.push({id:start+1,n:`LFO ${lfo+1} shape`,min:-1,max:15,v:1,o:lfoShapes});
+        lfoParams.push({id:start+2,n:`LFO ${lfo+1} delay`,min:-25,max:127,v:0});
+        lfoParams.push({id:start+3,n:`LFO ${lfo+1} variation`,min:0,max:100,v:0});
+        lfoParams.push({id:start+4,n:`LFO ${lfo+1} sync`,min:0,max:1,v:0,o:[[0,"Key sync"],[1,"Free run"]]});
+      }
+      const envParams = [{id:1793,n:"Volume envelope mode",min:0,max:2,v:0,o:[[0,"Factory"],[1,"Time based"],[2,"Tempo based"]]}];
+      const stageNames = ["Attack 1","Decay 1","Release 1","Attack 2","Decay 2","Release 2"];
+      for (let stage = 0; stage < 6; stage += 1) {
+        envParams.push({id:1794+stage*2,n:`Volume ${stageNames[stage]} rate`,min:0,max:127,v:0});
+        envParams.push({id:1795+stage*2,n:`Volume ${stageNames[stage]} level`,min:0,max:100,v:0});
+      }
+      envParams.push({id:1806,n:"Filter envelope mode",min:1,max:3,v:1,o:[[1,"Off"],[2,"Time based"],[3,"Tempo based"]]});
+      for (let stage = 0; stage < 6; stage += 1) {
+        envParams.push({id:1807+stage*2,n:`Filter ${stageNames[stage]} rate`,min:0,max:127,v:0});
+        envParams.push({id:1808+stage*2,n:`Filter ${stageNames[stage]} level`,min:-100,max:100,v:0});
+      }
+      envParams.push({id:1819,n:"Aux envelope mode",min:1,max:3,v:1,o:[[1,"Off"],[2,"Time based"],[3,"Tempo based"]]});
+      for (let stage = 0; stage < 6; stage += 1) {
+        envParams.push({id:1820+stage*2,n:`Aux ${stageNames[stage]} rate`,min:0,max:127,v:0});
+        envParams.push({id:1821+stage*2,n:`Aux ${stageNames[stage]} level`,min:-100,max:100,v:0});
+      }
+      envParams.push({id:1833,n:"Filter envelope repeat",min:0,max:1,v:0,o:[[0,"Normal"],[1,"Repeat"]]},{id:1834,n:"Aux envelope repeat",min:0,max:1,v:0,o:[[0,"Normal"],[1,"Repeat"]]});
+      const cordParams = [];
+      for (let cord = 0; cord < 24; cord += 1) {
+        const start = 1921 + cord * 3;
+        cordParams.push({id:start,n:`Cord ${String(cord+1).padStart(2,"0")} source`,min:0,max:255,v:0});
+        cordParams.push({id:start+1,n:`Cord ${String(cord+1).padStart(2,"0")} destination`,min:0,max:255,v:0});
+        cordParams.push({id:start+2,n:`Cord ${String(cord+1).padStart(2,"0")} amount`,min:-100,max:100,v:0});
+      }
+      const groupParams = {voice:layerParams,filter:filterParams,envelopes:envParams,lfos:lfoParams,cords:cordParams};
+      const groupNotes = {voice:"Layer tone generation, split ranges, tuning, chorus, glide and playback behavior.",filter:"The Proteus has 50 Z-plane filter types. Frequency and Q meanings depend on the selected filter family.",envelopes:"Three independent envelopes: amplifier, filter and auxiliary. Rates can be time- or tempo-based.",lfos:"Two LFOs per layer. Negative rate values select tempo divisions.",cords:"24 modulation patch cords per layer. Source and destination IDs follow the Proteus family map."};
+      const fxParams = [{id:1154,n:"A · Decay",min:0,max:90,v:40},{id:1155,n:"A · HF damping",min:0,max:127,v:64},{id:1156,n:"B → A",min:0,max:127,v:0},...[0,1,2,3].map((n)=>({id:[1157,1158,1159,1167][n],n:`A · Send ${n+1}`,min:0,max:100,v:[100,50,10,0][n]})),{id:1161,n:"B · Feedback",min:0,max:127,v:0},{id:1162,n:"B · LFO rate",min:0,max:127,v:3},{id:1163,n:"B · Delay",min:0,max:127,v:0},...[0,1,2,3].map((n)=>({id:[1164,1165,1166,1168][n],n:`B · Send ${n+1}`,min:0,max:100,v:[100,50,10,0][n]}))];
+      const arpParams = [{id:1025,n:"Preset arpeggiator",min:0,max:1,v:0},{id:1026,n:"Arpeggiator mode",min:0,max:7,v:0},{id:1028,n:"Note value",min:0,max:19,v:9},{id:1029,n:"Arp velocity",min:0,max:127,v:0},{id:1030,n:"Gate",min:1,max:100,v:50},{id:1031,n:"Extension count",min:0,max:15,v:0},{id:1032,n:"Extension interval",min:1,max:16,v:12},{id:1033,n:"Sync",min:0,max:1,v:0},{id:1038,n:"Latch",min:0,max:1,v:0}];
+      const voiceDefaults = new Map();
+      for (let layer = 0; layer < 4; layer += 1) for (const params of Object.values(groupParams)) for (const param of params) voiceDefaults.set(`${layer}:${param.id}`,param.v);
+      const commonDefaults = new Map([...fxParams,...arpParams].map((param)=>[param.id,param.v]));
+      const presetNames = new Map();
+      try { for(const [key,value] of JSON.parse(localStorage.getItem("proteus2000-preset-names")||"[]")) presetNames.set(key,value); } catch {}
+      let midiAccess = null, midiOut = null, midiIn = null, selectedLayer = 0, selectedGroup = "voice", selectedChannel = 0, deviceId = 0, selectedModule = "proteus", remoteSessionOpen = false;
+      const controllerWidgets = new Map();
+      const rackControllerBanks = [["A","B","C","D"],["E","F","G","H"],["I","J","K","L"]];
+      let rackControllerBank = 0, encoderValue = 64, encoderDragY = null, encoderDragRemainder = 0, encoderDragged = false;
+      let currentPresetName = "No preset read", incomingDump = null, isDirty = false, patchNameTimer = null, patchNameFetchId = 0;
+      let bassHeld = new Set(), mainHeld = new Set(), activeBassNotes = [], activeMainNotes = [], bassTimer = null, mainTimer = null;
+      let bassLatchNotes = [], mainLatchNotes = [], captureKeys = false;
+      const customKeys = {bass:[],main:[]};
+      const heldByUi = new Map();
+      const computerHeld = new Map();
+      const monitor = $("monitor");
+      const status = (text, online = Boolean(midiOut)) => { $("midiStatus").textContent = text; $("midiLed").classList.toggle("on",online); };
+      const to14 = (value) => { let raw = Math.trunc(Number(value)); if (raw < 0) raw += 16384; raw = Math.max(0,Math.min(16383,raw)); return [raw & 127,(raw >> 7) & 127]; };
+      const from14 = (bytes,index) => { const raw = (bytes[index] || 0) + ((bytes[index+1] || 0) << 7); return raw >= 8192 ? raw - 16384 : raw; };
+      const pairs = (items) => items.flatMap(([id,value])=>[...to14(id),...to14(value)]);
+      const frame = (command,...payload) => new Uint8Array([0xF0,0x18,0x0F,deviceId,0x55,command,...payload,0xF7]);
+      const hex = (bytes) => Array.from(bytes,(byte)=>byte.toString(16).padStart(2,"0").toUpperCase()).join(" ");
+      function addLog(direction,message,bytes,kind="") {
+        const filter = $("monitorFilter").value;
+        if (filter === "sysex" && !message.startsWith("SysEx") && !message.includes("SysEx")) return;
+        if (filter === "channel" && message.startsWith("SysEx")) return;
+        const line = document.createElement("div"); line.className = `monitor-line ${direction === "IN" ? "in" : ""} ${kind}`;
+        const time = document.createElement("span"); time.className = "time"; time.textContent = `${direction} ${new Date().toLocaleTimeString([], {hour12:false})}`;
+        const text = document.createElement("span"); text.className = "msg"; text.textContent = `${message}  ·  ${hex(bytes)}`;
+        line.append(time,text); monitor.append(line); while(monitor.children.length > 180) monitor.firstChild.remove(); monitor.scrollTop=monitor.scrollHeight;
+      }
+      function midiName(data) {
+        const statusByte = data[0] || 0; const type = statusByte & 0xF0; const ch = (statusByte & 15) + 1;
+        if (statusByte === 0xF8) return "MIDI clock";
+        if (statusByte === 0xFA) return "Start";
+        if (statusByte === 0xFC) return "Stop";
+        if (type === 0x90 && data[2] > 0) return `Note on · ch ${ch} · ${noteName(data[1])} · vel ${data[2]}`;
+        if (type === 0x80 || type === 0x90) return `Note off · ch ${ch} · ${noteName(data[1])}`;
+        if (type === 0xB0) return `Control change · ch ${ch} · CC ${data[1]} = ${data[2]}`;
+        if (type === 0xC0) return `Program change · ch ${ch} · ${data[1]+1}`;
+        if (type === 0xE0) return `Pitch bend · ch ${ch} · ${((data[2]<<7)+data[1])-8192}`;
+        if (type === 0xD0) return `Channel pressure · ch ${ch} · ${data[1]}`;
+        return `MIDI status ${statusByte.toString(16).toUpperCase()}`;
+      }
+      function sendBytes(bytes,description,kind="") {
+        if (!midiOut) { addLog("OUT",`Not sent: ${description}`,bytes,"warn"); return false; }
+        try { midiOut.send(bytes); addLog("OUT",description,bytes,kind); return true; }
+        catch(error) { status(`MIDI error: ${error.message}`,false); addLog("OUT",`Send failed: ${error.message}`,bytes,"warn"); return false; }
+      }
+      function ensureRemoteSession(){if(remoteSessionOpen)return true;if(!midiOut)return false;remoteSessionOpen=sendBytes(frame(0x40,0x10),"Open Proteus remote-panel session");return remoteSessionOpen;}
+      function sendPanelButton(buttonId,label){if(!ensureRemoteSession())return false;const id=to14(buttonId);const press=frame(0x40,0x20,...id,1);if(!sendBytes(press,`Front panel · ${label} press`))return false;window.setTimeout(()=>sendBytes(frame(0x40,0x20,...id,0),`Front panel · ${label} release`),75);return true;}
+      function sendPanelRotary(rotaryId,delta){if(!ensureRemoteSession())return false;return sendBytes(frame(0x40,0x22,...to14(rotaryId),...to14(delta)),`Front panel · encoder ${delta>0?"clockwise":"counterclockwise"} ${Math.abs(delta)}`);}
+      document.querySelectorAll("[data-panel-button]").forEach((button)=>button.addEventListener("click",()=>sendPanelButton(Number(button.dataset.panelButton),button.getAttribute("aria-label")||button.title)));
+      function turnValueEncoder(delta){if(!delta)return;encoderValue=Math.max(0,Math.min(127,encoderValue+delta));$("encoderValue").value=String(encoderValue);$("valueEncoder").style.setProperty("--encoder-angle",`${-135+encoderValue/127*270}deg`);sendPanelRotary(1,delta);}
+      const valueEncoder=$("valueEncoder");
+      valueEncoder.addEventListener("pointerdown",(event)=>{if(event.button!==0)return;event.preventDefault();valueEncoder.setPointerCapture(event.pointerId);encoderDragY=event.clientY;encoderDragRemainder=0;encoderDragged=false;});
+      valueEncoder.addEventListener("pointermove",(event)=>{if(encoderDragY===null)return;encoderDragRemainder+=encoderDragY-event.clientY;encoderDragY=event.clientY;const steps=Math.trunc(encoderDragRemainder/4);if(steps){encoderDragRemainder-=steps*4;encoderDragged=true;turnValueEncoder(steps);}});
+      valueEncoder.addEventListener("pointerup",()=>{if(encoderDragY!==null&&!encoderDragged)sendPanelButton(0x11,"Home/Enter");encoderDragY=null;});
+      valueEncoder.addEventListener("pointercancel",()=>{encoderDragY=null;});
+      valueEncoder.addEventListener("wheel",(event)=>{event.preventDefault();turnValueEncoder(event.deltaY<0?1:-1);},{passive:false});
+      valueEncoder.addEventListener("keydown",(event)=>{if(event.key==="ArrowUp"||event.key==="ArrowRight"){event.preventDefault();turnValueEncoder(1);}else if(event.key==="ArrowDown"||event.key==="ArrowLeft"){event.preventDefault();turnValueEncoder(-1);}else if(event.key==="Enter"){event.preventDefault();sendPanelButton(0x11,"Home/Enter");}});
+      window.addEventListener("pagehide",()=>{if(remoteSessionOpen){sendBytes(frame(0x40,0x11),"Close Proteus remote-panel session");remoteSessionOpen=false;}});
+      function sendChannel(statusNibble,data1,data2=0,description="") {
+        const bytes = new Uint8Array([statusNibble + selectedChannel,data1 & 127,data2 & 127]);
+        sendBytes(bytes,description || midiName(bytes));
+      }
+      function sendParameterEdit(items,scope="preset",layer=selectedLayer) {
+        let values = items.slice();
+        if (scope === "layer") values = [[897,-1],[898,layer],...values];
+        else if (scope === "preset") values = [[897,-1],...values];
+        const bytes = frame(0x01,values.length,...pairs(values));
+        for (const [id,value] of items) {
+          if (scope === "layer") voiceDefaults.set(`${layer}:${id}`,Number(value));
+          else if (scope === "preset") commonDefaults.set(id,Number(value));
+        }
+        isDirty = true; $("dirtyState").textContent = "EDITED · NOT STORED"; $("dirtyState").style.color="var(--amber)";
+        refreshLayerSummary();
+        return sendBytes(bytes,scope === "layer" ? `Parameter edit · layer ${layerNames[layer]}` : scope === "preset" ? "Preset parameter edit" : "Master parameter edit");
+      }
+      function requestValues(ids,scope="preset",layer=selectedLayer) {
+        if(scope==="layer") sendBytes(frame(0x01,2,...pairs([[897,-1],[898,layer]])),`Select layer ${layerNames[layer]}`);
+        else if(scope==="preset") sendBytes(frame(0x01,1,...pairs([[897,-1]])),"Select preset edit buffer");
+        for(let offset=0;offset<ids.length;offset+=100){
+          const chunk=ids.slice(offset,offset+100);
+          sendBytes(frame(0x02,chunk.length,...chunk.flatMap(to14)),"Parameter value request");
+        }
+      }
+      function inputFor(param,value,scope,layer) {
+        const wrapper=document.createElement("div"); wrapper.className="param";
+        const label=document.createElement("label"); label.textContent=param.n; label.title=`Proteus parameter ID ${param.id}, range ${param.min} to ${param.max}`;
+        if(param.o){
+          const select=document.createElement("select"); select.setAttribute("aria-label",param.n); param.o.forEach(([val,text])=>{const option=document.createElement("option");option.value=val;option.textContent=text;select.append(option);}); select.value=String(value);
+          select.addEventListener("change",()=>sendParameterEdit([[param.id,Number(select.value)]],scope,layer)); wrapper.append(label,select);
+        } else {
+          const range=document.createElement("input"); range.type="range";range.min=param.min;range.max=param.max;range.step=1;range.value=value;range.setAttribute("aria-label",param.n);
+          const number=document.createElement("input");number.type="number";number.min=param.min;number.max=param.max;number.step=1;number.value=value;number.setAttribute("aria-label",`${param.n} value`);
+          range.addEventListener("input",()=>{number.value=range.value;sendParameterEdit([[param.id,Number(range.value)]],scope,layer);});
+          number.addEventListener("change",()=>{const v=Math.max(param.min,Math.min(param.max,Number(number.value)||0));number.value=v;range.value=v;sendParameterEdit([[param.id,v]],scope,layer);}); wrapper.append(label,range,number);
+        }
+        const id=document.createElement("span");id.className="param-id";id.textContent=`ID ${param.id}`;wrapper.append(id);return wrapper;
+      }
+      function renderLayerControls() {
+        const grid=$("paramGrid");grid.replaceChildren();$("groupNote").textContent=groupNotes[selectedGroup];
+        const params=groupParams[selectedGroup];
+        params.forEach((param)=>grid.append(inputFor(param,voiceDefaults.get(`${selectedLayer}:${param.id}`) ?? param.v,"layer",selectedLayer)));
+        refreshLayerSummary();
+      }
+      function refreshLayerSummary(){
+        const instrument=voiceDefaults.get(`${selectedLayer}:1409`)??0;
+        $("activeLayerLabel").textContent=layerNames[selectedLayer];$("layerInstrument").textContent=`Instrument ${instrument}`;
+      }
+      function renderGlobalControl(param,parent,scope="preset") {
+        const row=document.createElement("div");row.className="global-control";const label=document.createElement("label");label.textContent=param.n;
+        if(param.o){const select=document.createElement("select");select.className="control-select";select.setAttribute("aria-label",param.n);param.o.forEach(([v,t])=>{const option=document.createElement("option");option.value=v;option.textContent=t;select.append(option);});select.value=String(commonDefaults.get(param.id)??param.v);select.addEventListener("change",()=>sendParameterEdit([[param.id,Number(select.value)]],scope));row.append(label,select,document.createElement("span"));}
+        else {const slider=document.createElement("input");slider.type="range";slider.min=param.min;slider.max=param.max;slider.value=commonDefaults.get(param.id)??param.v;slider.setAttribute("aria-label",param.n);const number=document.createElement("input");number.type="number";number.min=param.min;number.max=param.max;number.value=slider.value;number.setAttribute("aria-label",`${param.n} value`);slider.addEventListener("input",()=>{number.value=slider.value;sendParameterEdit([[param.id,Number(slider.value)]],scope);});number.addEventListener("change",()=>{const v=Math.max(param.min,Math.min(param.max,Number(number.value)||0));number.value=v;slider.value=v;sendParameterEdit([[param.id,v]],scope);});row.append(label,slider,number);}
+        parent.append(row);
+      }
+      function initializeSelect(select,values) { values.forEach((name,index)=>{const option=document.createElement("option");option.value=index;option.textContent=`${String(index).padStart(2,"0")} · ${name}`;select.append(option);}); }
+      initializeSelect($("fxA"),fxANames);initializeSelect($("fxB"),fxBNames);
+      $("fxA").addEventListener("change",()=>sendParameterEdit([[1153,Number($("fxA").value)]],"preset"));
+      $("fxB").addEventListener("change",()=>sendParameterEdit([[1160,Number($("fxB").value)]],"preset"));
+      function refreshCommonControls(){
+        $("fxA").value=String(commonDefaults.get(1153)??0);
+        $("fxB").value=String(commonDefaults.get(1160)??0);
+        $("fxGrid").replaceChildren();
+        fxParams.forEach((param)=>renderGlobalControl(param,$("fxGrid"),"preset"));
+        $("arpEnabled").checked=Boolean(commonDefaults.get(1025)??0);
+        $("arpMode").value=String(commonDefaults.get(1026)??0);
+        $("arpLatch").checked=Boolean(commonDefaults.get(1038)??0);
+        const tempo=commonDefaults.get(257);
+        if(tempo!==undefined){$("tempo").value=String(Math.max(0,Math.min(300,tempo)));$("tempoValue").value=tempo===0?"EXT":String(tempo);}
+      }
+      refreshCommonControls();
+      for(let channel=1;channel<=16;channel++){const option=document.createElement("option");option.value=String(channel-1);option.textContent=`CH ${String(channel).padStart(2,"0")}`;$("channel").append(option);}
+      for(let id=0;id<=126;id++){$("deviceId").append(new Option(String(id).padStart(3,"0"),String(id)));}
+      $("deviceId").addEventListener("change",()=>{deviceId=Number($("deviceId").value);});
+      const liveControllers=[["A","Tone",21],["B","Presence",22],["C","Shape",23],["D","Image",24],["E","Attack",25],["F","Decay / release",26],["G","Movement",27],["H","Rate",28],["I","Dynamic 1",80],["J","Dynamic 2",81],["K","FX A",91],["L","FX B",93]];
+      liveControllers.forEach(([letter,name,defaultCC])=>{const cell=document.createElement("div");cell.className="cc-cell";const label=document.createElement("label");label.textContent=`${letter} · ${name}`;const cc=document.createElement("input");cc.type="number";cc.min=0;cc.max=119;cc.value=defaultCC;cc.setAttribute("aria-label",`${letter} CC number`);const slider=document.createElement("input");slider.type="range";slider.min=0;slider.max=127;slider.value=64;slider.setAttribute("aria-label",`${letter} ${name} value`);controllerWidgets.set(letter,{cc,slider,name});slider.addEventListener("input",()=>setLiveController(letter,slider.value));cc.addEventListener("change",()=>{cc.value=Math.max(0,Math.min(119,Number(cc.value)||0));});cell.append(label,cc,slider);$("ccGrid").append(cell);});
+      function setKnobAngle(elementId,value){const face=$(elementId)?.closest(".rack-knob-control")?.querySelector(".rack-knob-face");if(face)face.style.setProperty("--knob-angle",`${-135+Number(value)/127*270}deg`);}
+      function setLiveController(letter,value){const control=controllerWidgets.get(letter);if(!control)return;const normalized=Math.max(0,Math.min(127,Number(value)||0));control.slider.value=String(normalized);const index=rackControllerBanks[rackControllerBank].indexOf(letter);if(index>=0){const slot="ABCD"[index];$(`rackController${slot}`).value=String(normalized);$(`rackValue${slot}`).value=String(normalized);setKnobAngle(`rackController${slot}`,normalized);}sendChannel(0xB0,Number(control.cc.value),normalized,`MIDI ${letter} · CC ${control.cc.value} = ${normalized}`);}
+      function syncRackControllerBank(){const letters=rackControllerBanks[rackControllerBank];$("rackBankLabel").value=`${letters[0]}-${letters[3]}`;$("rackControlBank").setAttribute("aria-pressed",String(rackControllerBank!==0));letters.forEach((letter,index)=>{const slot="ABCD"[index],control=controllerWidgets.get(letter),value=control?.slider.value??64;$(`rackLabel${slot}`).textContent=`${letter} · ${control?.name.toUpperCase()??"CONTROL"}`;$(`rackValue${slot}`).value=String(value);$(`rackController${slot}`).value=String(value);setKnobAngle(`rackController${slot}`,value);});}
+      syncRackControllerBank();
+      ["A","B","C","D"].forEach((slot,index)=>$(`rackController${slot}`).addEventListener("input",()=>setLiveController(rackControllerBanks[rackControllerBank][index],$(`rackController${slot}`).value)));
+      $("rackControlBank").addEventListener("click",()=>{rackControllerBank=(rackControllerBank+1)%rackControllerBanks.length;syncRackControllerBank();sendPanelButton(0x30,"Control bank");});
+      $("rackVolume").addEventListener("input",()=>{const value=Number($("rackVolume").value);$("rackValueVolume").value=String(value);setKnobAngle("rackVolume",value);sendChannel(0xB0,7,value,`Volume · CC 7 = ${value}`);});
+      setKnobAngle("rackVolume",100);
+      document.querySelectorAll(".layer-tab").forEach((tab)=>tab.addEventListener("click",()=>{selectedLayer=Number(tab.dataset.layer);document.querySelectorAll(".layer-tab").forEach((item)=>item.setAttribute("aria-selected",String(item===tab)));renderLayerControls();}));
+      document.querySelectorAll(".group-tab").forEach((tab)=>tab.addEventListener("click",()=>{selectedGroup=tab.dataset.group;document.querySelectorAll(".group-tab").forEach((item)=>item.setAttribute("aria-selected",String(item===tab)));renderLayerControls();}));
+      $("channel").addEventListener("change",()=>{selectedChannel=Number($("channel").value);$("lcdDetail").textContent=`CHANNEL ${String(selectedChannel+1).padStart(2,"0")}   LAYERS A-D`;});
+      $("tempo").addEventListener("input",()=>{$("tempoValue").value=$("tempo").value==="0"?"EXT":$("tempo").value;sendParameterEdit([[257,Number($("tempo").value)]],"master");});
+      $("arpEnabled").addEventListener("change",()=>sendParameterEdit([[1025,Number($("arpEnabled").checked)]],"preset"));
+      $("arpLatch").addEventListener("change",()=>sendParameterEdit([[1038,Number($("arpLatch").checked)]],"preset"));
+      $("arpMode").addEventListener("change",()=>sendParameterEdit([[1026,Number($("arpMode").value)]],"preset"));
+
+      function noteName(note){return `${["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"][note%12]}${Math.floor(note/12)-1}`;}
+      const whiteSemitones=[0,2,4,5,7,9,11], blackSemitones=[1,3,null,6,8,10,null];
+      function renderKeyboard(container,startNote,octaves,kind){
+        container.replaceChildren();container.dataset.start=String(startNote);container.dataset.octaves=String(octaves);
+        const whiteNotes=[];for(let octave=0;octave<octaves;octave++)whiteSemitones.forEach((semitone)=>whiteNotes.push(startNote+octave*12+semitone));
+        whiteNotes.forEach((note,index)=>{
+          const key=document.createElement("div");key.className="white-key";key.dataset.note=note;key.setAttribute("role","button");key.setAttribute("aria-label",`${noteName(note)} MIDI ${note}`);const label=document.createElement("span");label.className="key-num";label.textContent=index%7===0?noteName(note):"";key.append(label);container.append(key);bindKey(key,note,kind);
+          const semitone=note%12;if(![0,2,5,7,9].includes(semitone))return;
+          const blackNote=note+1;const black=document.createElement("div");black.className="black-key";black.dataset.note=blackNote;black.setAttribute("role","button");black.setAttribute("aria-label",`${noteName(blackNote)} MIDI ${blackNote}`);black.style.left=`${((index+1)/whiteNotes.length)*100}%`;const keyLabel=document.createElement("span");keyLabel.className="key-num";keyLabel.textContent=noteName(blackNote);black.append(keyLabel);container.append(black);bindKey(black,blackNote,kind);
+        });
+      }
+      function currentChord(root){const quality=$("chordQuality").value;if(quality==="off")return[root];const inversion=Number($("chordInversion").value);const base=quality==="major"?[0,4,7]:[0,3,7];const voicings=[[base[0],base[1],base[2]],[base[1],base[2],base[0]+12],[base[2],base[0]+12,base[1]+12]];return voicings[inversion].map((interval)=>root+interval).filter((note)=>note<=127);}
+      function bindKey(key,note,kind){
+        const begin=(event)=>{event.preventDefault();if(event.button!==undefined&&event.button!==0)return;key.setPointerCapture?.(event.pointerId);key.classList.add("pressed");if(captureKeys){const target=$("customTarget").value;customKeys[target]=Array.from(new Set([...customKeys[target],note])).sort((a,b)=>a-b);updateCustomStatus();return;}if(kind==="bass"){bassLatchNotes=[];bassHeld.add(note);if(!bassTimer&&$("bassMode").value!=="none")startArp("bass");else if($("bassMode").value==="none")sendChannel(0x90,note,100);}else{mainLatchNotes=[];mainHeld.add(note);if($("mainArp").checked){if(!mainTimer)startArp("main");}else{const notes=currentChord(note);heldByUi.set(`${kind}:${note}`,notes);notes.forEach((n)=>sendChannel(0x90,n,Number($("velocityMain")?.value||96),`Note on · ${noteName(n)}`));}}};
+        const end=(event)=>{key.classList.remove("pressed");if(captureKeys)return;if(kind==="bass"){if($("bassLatch").checked)bassLatchNotes=Array.from(bassHeld).filter((held)=>held!==note);bassHeld.delete(note);if($("bassMode").value==="none")sendChannel(0x80,note,0);if(!bassHeld.size&&!$("bassLatch").checked)stopArp("bass");}else if($("mainArp").checked){if($("mainLatch").checked)mainLatchNotes=Array.from(mainHeld).filter((held)=>held!==note);mainHeld.delete(note);if(!mainHeld.size&&!$("mainLatch").checked)stopArp("main");}else{mainHeld.delete(note);const notes=heldByUi.get(`${kind}:${note}`)||[note];notes.forEach((n)=>sendChannel(0x80,n,0,`Note off · ${noteName(n)}`));heldByUi.delete(`${kind}:${note}`);}};
+        key.addEventListener("pointerdown",begin);key.addEventListener("pointerup",end);key.addEventListener("pointercancel",end);key.addEventListener("lostpointercapture",end);
+      }
+      function getHeldFor(kind){const active=kind==="bass"?bassHeld:mainHeld;const latched=kind==="bass"?bassLatchNotes:mainLatchNotes;let notes=Array.from(active);if(!notes.length&&$(kind==="bass"?"bassLatch":"mainLatch").checked)notes=latched.slice();notes.sort((a,b)=>a-b);if(kind==="bass"&&$("bassChord").checked)notes=Array.from(new Set(notes.flatMap((note)=>currentChord(note)))).sort((a,b)=>a-b);return notes;}
+      function sequenceFor(kind){const mode=kind==="bass"?$("bassMode").value:"custom";let notes=getHeldFor(kind);if(mode==="custom")notes=customKeys[kind].length?customKeys[kind]:notes;if(!notes.length)return[];if(mode==="down")notes.reverse();if(mode==="updown"&&notes.length>2)return [...notes,...notes.slice(1,-1).reverse()];if(mode==="octave")return notes.flatMap((note)=>[note,note+12].filter((n)=>n<=127));if(mode==="chord")return notes.flatMap((note)=>currentChord(note));return notes;}
+      function startArp(kind){if(kind==="bass"&&bassTimer||kind==="main"&&mainTimer)return;let index=0;const tick=()=>{const sequence=sequenceFor(kind);const active=kind==="bass"?activeBassNotes:activeMainNotes;active.forEach((note)=>sendChannel(0x80,note,0,`Arp note off · ${noteName(note)}`));active.length=0;if(!sequence.length)return;const note=sequence[index%sequence.length];active.push(note);sendChannel(0x90,note,96,`Arp note on · ${noteName(note)}`);index+=1;};tick();const tempo=Math.max(30,Number($("tempo").value)||120);const divisor=kind==="bass"?Number($("bassRate").value):4;const period=60000/tempo/divisor;const timer=setInterval(tick,period);if(kind==="bass")bassTimer=timer;else mainTimer=timer;$("bassStart").disabled=Boolean(bassTimer);$("bassStop").disabled=!bassTimer;}
+      function stopArp(kind){const timer=kind==="bass"?bassTimer:mainTimer;if(timer)clearInterval(timer);const active=kind==="bass"?activeBassNotes:activeMainNotes;active.forEach((note)=>sendChannel(0x80,note,0,`Arp stop · ${noteName(note)}`));active.length=0;if(kind==="bass"){bassTimer=null;bassLatchNotes=[];}else{mainTimer=null;mainLatchNotes=[];}$("bassStart").disabled=Boolean(bassTimer);$("bassStop").disabled=!bassTimer;}
+      $("bassStart").addEventListener("click",()=>{if($("bassMode").value==="none"){$("bassMode").value="up";}startArp("bass");$("bassStart").disabled=true;$("bassStop").disabled=false;});
+      $("bassStop").addEventListener("click",()=>stopArp("bass"));
+      $("bassMode").addEventListener("change",()=>{if($("bassMode").value==="none")stopArp("bass");});
+      $("mainArp").addEventListener("change",()=>{if(!$("mainArp").checked)stopArp("main");});
+      $("storeKeys").addEventListener("click",()=>{const target=$("customTarget").value;localStorage.setItem(`proteus2000-custom-${target}`,JSON.stringify(customKeys[target]));updateCustomStatus();});
+      $("captureToggle").addEventListener("click",()=>{captureKeys=!captureKeys;$("captureToggle").classList.toggle("active",captureKeys);$("captureToggle").textContent=captureKeys?"Capturing · click notes, then Store keys":"Capture clicked keys";});
+      function updateCustomStatus(){const bass=customKeys.bass.length,main=customKeys.main.length;$("customStatus").textContent=`Bass: ${bass} custom note${bass===1?"":"s"} · Main: ${main} custom note${main===1?"":"s"}`;}
+      for(const target of ["bass","main"]){try{customKeys[target]=JSON.parse(localStorage.getItem(`proteus2000-custom-${target}`)||"[]");}catch{customKeys[target]=[];}}
+      renderKeyboard($("bassKeys"),36,2,"bass");renderKeyboard($("mainKeys"),36,5,"main");updateCustomStatus();
+
+      function populatePorts(){if(!midiAccess)return;const out=$("midiOut"),input=$("midiIn"),priorOut=midiOut?.id,priorIn=midiIn?.id;out.replaceChildren();input.replaceChildren();const outPlaceholder=new Option("Select MIDI output","");const inPlaceholder=new Option("Select MIDI input","");out.append(outPlaceholder);input.append(inPlaceholder);for(const port of midiAccess.outputs.values()){out.append(new Option(port.name||port.id,port.id));}for(const port of midiAccess.inputs.values()){input.append(new Option(port.name||port.id,port.id));}if(priorOut&&midiAccess.outputs.has(priorOut))out.value=priorOut;if(priorIn&&midiAccess.inputs.has(priorIn))input.value=priorIn;selectPorts();}
+      function selectPorts(){const previousOut=midiOut;const nextOut=midiAccess?.outputs.get($("midiOut").value)||null;if(remoteSessionOpen&&previousOut&&previousOut!==nextOut){try{previousOut.send(frame(0x40,0x11));}catch{}remoteSessionOpen=false;}midiOut=nextOut;midiIn=midiAccess?.inputs.get($("midiIn").value)||null;if(midiIn)midiIn.onmidimessage=onMidiMessage;status(midiOut?"OUTPUT READY":"MIDI connected · select ports",Boolean(midiOut));$("storePreset").disabled=!midiOut;$("getPreset").disabled=!midiOut;$("requestName").disabled=!midiOut;}
+      async function enableMidi(){if(!navigator.requestMIDIAccess){status("Web MIDI unavailable",false);showNotice("Web MIDI unavailable","Use Chrome, Edge, or another Chromium browser on HTTPS or localhost.");return;}try{midiAccess=await navigator.requestMIDIAccess({sysex:true});midiAccess.onstatechange=populatePorts;populatePorts();status("SysEx permission granted",false);addLog("IN","Web MIDI ready · SysEx enabled",new Uint8Array([0xF0,0x18,0x0F,deviceId,0x55,0x01,0xF7]));}catch(error){status("MIDI permission denied",false);showNotice("MIDI access blocked",`${error.name}: ${error.message}. Allow Web MIDI and SysEx in Chrome site settings, then reconnect.`);}}
+      $("enableMidi").addEventListener("click",enableMidi);$("midiOut").addEventListener("change",selectPorts);$("midiIn").addEventListener("change",selectPorts);$("midiOut").disabled=true;$("midiIn").disabled=true;
+      $("midiThru").addEventListener("change",()=>{});
+      function onMidiMessage(event){const data=new Uint8Array(event.data);if(data[0]===0xF0){parseSysEx(data);addLog("IN",describeSysEx(data),data);return;}const text=midiName(data);if(data[0]===0xF8){$("clockStatus").textContent="MIDI CLOCK";}addLog("IN",text,data);if($("midiThru").checked&&midiOut)sendBytes(data,`Thru · ${text}`);}
+      function describeSysEx(data){const command=data[5],sub=data[6];const labels={1:"Parameter value edit",2:"Parameter value response",11:"Preset dump request",12:"Preset name",16:"Preset dump",28:"Setup dump",32:"Copy preset",112:"Device error",123:"Dump complete"};if(command===0x10)return `SysEx · Preset dump · sub ${sub?.toString(16).padStart(2,"0")}`;if(command===0x0B)return `SysEx · Preset name · ${String.fromCharCode(...data.slice(11,-1))}`;return `SysEx · ${labels[command]||`command 0x${command?.toString(16).padStart(2,"0")}`} · device ${data[3]}`;}
+      function readPresetControls(){const bank=Math.max(0,Math.min(7,Number($("bank").value)||0));const program=Math.max(0,Math.min(127,Number($("program").value)||0));return {number:bank*128+program,rom:Number($("rom").value),bank,program};}
+      function requestPreset(){if(!midiOut)return showNotice("No MIDI output","Select a MIDI output before asking the Proteus for data.");const preset=readPresetControls();deviceId=Number($('deviceId')?.value??deviceId);incomingDump={preset,data:[],header:null};const [p0,p1]=to14(preset.number),[r0,r1]=to14(preset.rom);sendBytes(frame(0x11,0x04,p0,p1,r0,r1),`Request preset dump · ROM ${preset.rom} · ${preset.number}`);requestPresetName(preset);status("Waiting for preset dump…",true);}
+      function requestPresetName(preset=readPresetControls()){if(!midiOut)return;sendBytes(frame(0x0C,0x01,...to14(preset.number),...to14(preset.rom)),`Request preset name · ${preset.number}`);}
+      for(const option of $("rom").options)$("patchRom").append(new Option(option.textContent,option.value));
+      function renderPatchList(){const rom=Number($("patchRom").value),bank=Math.max(0,Math.min(127,Number($("patchBank").value)||0)),query=$("patchSearch").value.trim().toLowerCase(),list=$("patchList");list.replaceChildren();let visible=0,cached=0;for(let program=0;program<128;program++){const number=bank*128+program,key=`${rom}:${number}`,name=presetNames.get(key)||"";if(name)cached++;const displayName=name||"Name not fetched";const numberText=String(program+1).padStart(3,"0");if(query&&!`${numberText} ${number+1} ${displayName}`.toLowerCase().includes(query))continue;const item=document.createElement("button");item.type="button";item.className="patch-item";item.setAttribute("role","option");item.setAttribute("aria-selected",String(Number($("rom").value)===rom&&Number($("bank").value)===bank&&Number($("program").value)===program));const numberLabel=document.createElement("span");numberLabel.className="patch-number";numberLabel.textContent=numberText;const nameLabel=document.createElement("span");nameLabel.className="patch-label";nameLabel.textContent=displayName;item.append(numberLabel,nameLabel);item.addEventListener("click",()=>selectPatch(rom,bank,program));list.append(item);visible++;}$("patchStatus").textContent=`${visible} / 128 programs · ${cached} names cached`;}
+      function openPatchSelector(){$("patchRom").value=$("rom").value;$ ("patchBank").value=$("bank").value;$ ("patchSearch").value="";renderPatchList();$("patchDialog").showModal();}
+      function selectPatch(rom,bank,program){$("rom").value=String(rom);$("bank").value=String(bank);$("program").value=String(program);sendChannel(0xB0,0,rom,`Bank select MSB · ROM ${rom}`);sendChannel(0xB0,32,bank,`Bank select LSB · bank ${bank}`);sendBytes(new Uint8Array([0xC0+selectedChannel,program]),`Program change · ${program+1}`);const name=presetNames.get(`${rom}:${bank*128+program}`);currentPresetName=name||`Program ${String(program+1).padStart(3,"0")}`;$ ("presetName").textContent=currentPresetName;$ ("lcdName").textContent=currentPresetName.toUpperCase();$("patchDialog").close();requestPreset();}
+      function fetchPatchNames(){if(!midiOut||!midiIn)return showNotice("MIDI input required","Connect the Proteus MIDI OUT to a MIDI input to receive patch names.");const generation=++patchNameFetchId;if(patchNameTimer)clearTimeout(patchNameTimer);const rom=Number($("patchRom").value),bank=Math.max(0,Math.min(127,Number($("patchBank").value)||0));let program=0;const next=()=>{if(generation!==patchNameFetchId||!$("patchDialog").open)return;if(program>=128){$("patchStatus").textContent="Bank name fetch complete";return;}const number=bank*128+program;requestPresetName({number,rom});program++;$("patchStatus").textContent=`Fetching names · ${program} / 128`;patchNameTimer=window.setTimeout(next,40);};next();}
+      $("patchDisplay").addEventListener("click",openPatchSelector);$("patchDisplay").addEventListener("keydown",(event)=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();openPatchSelector();}});
+      $("patchSearch").addEventListener("input",renderPatchList);$("patchRom").addEventListener("change",renderPatchList);$("patchBank").addEventListener("input",renderPatchList);$("fetchPatchNames").addEventListener("click",fetchPatchNames);$("patchDialog").addEventListener("close",()=>{patchNameFetchId++;if(patchNameTimer)clearTimeout(patchNameTimer);});
+      $("getPreset").addEventListener("click",requestPreset);$("requestName").addEventListener("click",()=>requestPresetName());
+      function onDumpHeader(data){if(!incomingDump)incomingDump={preset:readPresetControls(),data:[],header:null};const read=(index)=>(data[index]||0)+((data[index+1]||0)<<7);const bytes=data[9]+(data[10]<<7)+(data[11]<<14)+(data[12]<<21);const counts=[];for(let i=13;i<33;i+=2)counts.push(read(i));incomingDump.header={bytes,counts,rom:read(33)};incomingDump.data=[];}
+      function onDumpPacket(data){if(!incomingDump)return;const payload=data.slice(9,-2);incomingDump.data.push(...payload);}
+      function decodeDump(){if(!incomingDump?.data?.length)return;const bytes=incomingDump.data;const printable=bytes.slice(0,16).map((value)=>value>=32&&value<=126?String.fromCharCode(value):" ").join("").trim();if(printable.length>2){currentPresetName=printable;$("presetName").textContent=printable;$("lcdName").textContent=printable.toUpperCase();}
+        const commonIds=[...Array.from({length:56},(_,i)=>915+i),...Array.from({length:19},(_,i)=>1025+i),...Array.from({length:16},(_,i)=>1153+i),...Array.from({length:20},(_,i)=>1281+i)];
+        let offset=16;
+        for(const id of commonIds){if(offset+1>=bytes.length)break;commonDefaults.set(id,from14(bytes,offset));offset+=2;}
+        for(let layer=0;layer<4;layer++){
+          const layerIds=[...Array.from({length:31},(_,i)=>1409+i),...Array.from({length:3},(_,i)=>1537+i),...Array.from({length:10},(_,i)=>1665+i),...Array.from({length:42},(_,i)=>1793+i),...Array.from({length:72},(_,i)=>1921+i)];
+          for(const id of layerIds){if(offset+1>=bytes.length)break;voiceDefaults.set(`${layer}:${id}`,from14(bytes,offset));offset+=2;}
+        }
+        refreshCommonControls();renderLayerControls();if(isDirty){isDirty=false;$("dirtyState").textContent="READ FROM SYNTH";$("dirtyState").style.color="var(--mint)";}status("Preset data received",true);incomingDump=null;
+      }
+      function parseSysEx(data){if(data[0]!==0xF0||data[1]!==0x18||data[2]!==0x0F||data[4]!==0x55)return;deviceId=data[3];const command=data[5],sub=data[6];
+        if(command===0x01||command===0x02){const count=data[6]||0;let offset=7;let responseLayer=selectedLayer;for(let i=0;i<count&&offset+3<data.length-1;i++){const id=from14(data,offset);const value=from14(data,offset+2);offset+=4;if(id===897)continue;if(id===898){responseLayer=Math.max(0,Math.min(3,value));continue;}if(id>=1409&&id<=1992)voiceDefaults.set(`${responseLayer}:${id}`,value);else commonDefaults.set(id,value);}
+          const chars=Array.from({length:16},(_,index)=>String.fromCharCode(commonDefaults.get(899+index)||32)).join("").trim();if(chars.length>3){currentPresetName=chars;$("presetName").textContent=chars;$("lcdName").textContent=chars.toUpperCase();}refreshCommonControls();renderLayerControls();return;}
+        if(command===0x0B){if(data[6]===1){const number=from14(data,7),rom=from14(data,9),name=Array.from(data.slice(11,27),value=>String.fromCharCode(value)).join("").trim(),key=`${rom}:${number}`;if(name){presetNames.set(key,name);try{localStorage.setItem("proteus2000-preset-names",JSON.stringify(Array.from(presetNames.entries())));}catch{}if($("patchDialog").open)renderPatchList();const current=readPresetControls();if(current.rom===rom&&current.number===number){currentPresetName=name;$("presetName").textContent=name;$("lcdName").textContent=name.toUpperCase();}}}return;}
+        if(command===0x10){if(sub===0x01||sub===0x03){onDumpHeader(data);}else if(sub===0x02||sub===0x04){onDumpPacket(data);}return;}
+        if(command===0x7B){decodeDump();return;}
+        if(command===0x70){status("Proteus reported SysEx error",true);}
+      }
+      function openStoreDialog(){if(!midiOut)return showNotice("No MIDI output","Choose an output before storing a preset.");$("saveName").value=currentPresetName.includes(":")?currentPresetName.split(":").slice(1).join(":").slice(0,12):"New Preset";$("saveCategory").value=currentPresetName.includes(":")?currentPresetName.slice(0,3):"syn";$("saveBank").value=$("rom").value==="0"?$("bank").value:"0";$("saveSlot").value=$("program").value;$("storeDialog").showModal();}
+      $("storePreset").addEventListener("click",openStoreDialog);
+      $("confirmStore").addEventListener("click",(event)=>{event.preventDefault();const name=$("saveName").value.trim().slice(0,12)||"Untitled";const category=$("saveCategory").value.trim().slice(0,3).padEnd(3," ");const bank=Number($("saveBank").value),slot=Math.max(0,Math.min(127,Number($("saveSlot").value)||0));const presetName=`${category}:${name.padEnd(12," ")}`.slice(0,16);const namePairs=Array.from({length:16},(_,index)=>[899+index,presetName.charCodeAt(index)||32]);sendParameterEdit(namePairs,"preset");const destination=bank*128+slot;const [sourceLow,sourceHigh]=to14(-1),[destLow,destHigh]=to14(destination),[romLow,romHigh]=to14(0);sendBytes(frame(0x20,sourceLow,sourceHigh,destLow,destHigh,romLow,romHigh),`Copy edit buffer to User ${bank} · slot ${String(slot).padStart(3,"0")}`,"warn");currentPresetName=presetName;$("presetName").textContent=presetName;$("lcdName").textContent=presetName.toUpperCase();$("storeDialog").close();isDirty=false;$("dirtyState").textContent="STORED TO USER RAM";$("dirtyState").style.color="var(--mint)";});
+      $("storeForm").addEventListener("submit",(event)=>{if(event.submitter?.id!=="confirmStore")$("storeDialog").close();});
+      function showNotice(title,message){$("noticeTitle").textContent=title;$("noticeBody").textContent=message;$("noticeDialog").showModal();}
+      $("clearMonitor").addEventListener("click",()=>monitor.replaceChildren());$("monitorFilter").addEventListener("change",()=>{});
+      function renderModule(){const profile=moduleProfiles[selectedModule];const rack=document.querySelector(".rack");rack.style.setProperty("--rack-accent",profile.accent);rack.style.setProperty("--rack-accent-soft",`${profile.accent}33`);rack.style.setProperty("--rack-lcd",profile.lcd);$("rackPhoto").style.backgroundImage=`url("${profile.photo}")`;$("rackPhoto").style.opacity="1";}
+      function renderPatchAccent(){const profile=moduleProfiles[selectedModule];for(const [token,value] of Object.entries(profile.palette))document.documentElement.style.setProperty(token,value);document.querySelector('meta[name="theme-color"]').content=profile.palette["--bg"];$("patchDialog").style.setProperty("--rack-accent",profile.accent);}
+      $("module").addEventListener("change",()=>{selectedModule=$("module").value;renderModule();renderPatchAccent();});
+      document.addEventListener("keydown",(event)=>{if(event.repeat||event.target.matches("input,select,button,textarea")||event.ctrlKey||event.metaKey||event.altKey)return;const keys=["z","s","x","d","c","v","g","b","h","n","j","m",",","l",".",";","/","q","2","w","3","e","r","5","t","6","y","7","u","i","9","o","0","p","[","=","]"];const keyName=event.key.toLowerCase();const index=keys.indexOf(keyName);if(index<0||computerHeld.has(keyName))return;const note=36+index;if(note>95)return;event.preventDefault();const key=document.querySelector(`#mainKeys [data-note="${note}"]`);if(!key)return;key.classList.add("pressed");if(captureKeys){const target=$("customTarget").value;customKeys[target]=Array.from(new Set([...customKeys[target],note])).sort((a,b)=>a-b);updateCustomStatus();computerHeld.set(keyName,{note,arp:false,notes:[]});return;}if($("mainArp").checked){mainLatchNotes=[];mainHeld.add(note);if(!mainTimer)startArp("main");computerHeld.set(keyName,{note,arp:true,notes:[]});return;}const notes=currentChord(note);notes.forEach((n)=>sendChannel(0x90,n,96,`Note on · ${noteName(n)}`));computerHeld.set(keyName,{note,arp:false,notes});});
+      renderLayerControls();renderModule();renderPatchAccent();$("tempoValue").value="120";$("presetName").textContent=currentPresetName;$ ("midiOut").disabled=false;$ ("midiIn").disabled=false;
+      window.addEventListener("blur",()=>{stopArp("bass");stopArp("main");for(const notes of heldByUi.values())for(const note of notes)sendChannel(0x80,note,0);heldByUi.clear();document.querySelectorAll(".pressed").forEach((key)=>key.classList.remove("pressed"));});
+      renderLayerControls();renderModule();$("tempoValue").value="120";$("presetName").textContent=currentPresetName;$("midiOut").disabled=false;$("midiIn").disabled=false;
+      if(!window.isSecureContext&&location.hostname!=="localhost"&&location.hostname!=="127.0.0.1")status("HTTPS required",false);
+    })();
+  </script>
+</body>
+</html>
