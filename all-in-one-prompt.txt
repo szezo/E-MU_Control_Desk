@@ -6,7 +6,10 @@ Act as an expert sound engineer familiar with E-MU Proteus-family rack modules, 
 - Audity 2000
 - Virtuoso 2000
 - Xtreme Lead-1
+- TurboPhatt
+- Orbit-3
 - Mo'Phatt
+- B-3
 
 The main implementation must be one self-contained HTML page with inline CSS and JavaScript. Use the local product photos when present. Do not invent MIDI or SysEx protocol details: follow the documented E-MU Proteus-family SysEx specification and distinguish standard MIDI CCs from preset-parameter SysEx edits. The target browser is Chrome (Chromium Web MIDI); clearly handle the HTTPS/localhost requirement and SysEx permission.
 
@@ -19,7 +22,11 @@ The main implementation must be one self-contained HTML page with inline CSS and
   - `EMU-AUDITY-2000.jpg`
   - `EMU-VIRTUOSO-2000.jpg`
   - `EMU-XTREME-LEAD-1.jpg`
-- There is no supplied Mo'Phatt photo. Use the Proteus-family image as a clearly identified fallback unless a Mo'Phatt image is added later.
+  - `E-MU-TURBOPHATT.jpg`
+  - `E-MU-Orbit-3.jpg`
+  - `E-MU-MOPHATT.jpg`
+  - `E-MU-B-3.jpg`
+- Use each supplied module photo for its matching module; do not substitute the Proteus image when a model-specific photo is present.
 - The product photograph is the primary rack surface. Do not place a separate synth-name headline over it; selecting a model in the connection bar is sufficient.
 - Overlay functional controls directly on the photo and align them with the photographed hardware. Keep the rack visually proportionate, responsive, keyboard/touch accessible, and readable. Avoid a separate opaque control strip obscuring the faceplate.
 - Left of the LCD, overlay the hardware control bank pushbutton and rotary controls for Volume and controllers A, B, C, and D.
@@ -29,7 +36,7 @@ The main implementation must be one self-contained HTML page with inline CSS and
 - Populate patch labels from cached names when available. Provide an explicit Fetch Bank Names action that requests names using the documented generic-name SysEx request, paces requests to avoid flooding MIDI, and updates the matching ROM/program entry when replies arrive. If names have not been fetched, list the numbered slots without inventing patch names. Name fetching requires a return MIDI input; explain the missing-input state.
 - Clicking a patch sends Bank Select MSB/LSB and Program Change on the selected MIDI channel, updates the main ROM/bank/program fields, closes the picker, and requests that preset's dump so the editor loads its actual name and parameters.
 - The entire page palette must follow the selected module, not only the rack overlay. Update the page background, panels, borders, form fields, buttons, focus rings, patch-picker states, MIDI monitor accents, and keyboard pressed states together.
-- Derive distinct color tokens for each module from its faceplate: cyan/charcoal for Proteus, blue/cyan for Audity, silver/graphite with gold accents for Virtuoso, yellow/charcoal for Xtreme Lead-1, and a cool blue palette for Mo'Phatt. Keep the Mo'Phatt photo fallback clearly identified, but still apply its own palette.
+- Derive distinct color tokens for each module from its faceplate: cyan/charcoal for Proteus, blue/cyan for Audity, silver/graphite with gold accents for Virtuoso, yellow/charcoal for Xtreme Lead-1, red/orange for TurboPhatt, yellow/black for Orbit-3, magenta/purple for Mo'Phatt, and ivory/charcoal for B-3.
 - Changing the module selector must update the photo and all shared theme tokens immediately, without reloading the page. Ensure readable text contrast and keep semantic status colors (connected, warning, error) clear against every theme.
 
 ## MIDI Connection and Monitor
@@ -72,7 +79,7 @@ The main implementation must be one self-contained HTML page with inline CSS and
 ## Quality and Acceptance Checks
 
 - Keep the implementation standalone and avoid adding build dependencies unless absolutely necessary.
-- Verify all supplied image assets load and each module selection updates the right image, labels, and color scheme.
+- Verify all eight supplied image assets load and each module selection updates the right image, labels, and color scheme.
 - Verify each module selection changes computed colors for the page, panels, buttons, form controls, patch picker, and keyboard feedback—not just the rack accent—and updates the browser theme color.
 - Verify the overlay elements align with the rack photo at desktop and mobile widths, with no unintended page overflow or overlapping controls. On narrow screens, preserve access to the full rack controls.
 - Verify each of the five rotary controls left of the LCD changes its visible indicator during vertical drag as well as updating its value; do not rely on an invisible horizontal range input to provide the rotary gesture. Verify the encoder remains independently functional.

@@ -39,6 +39,10 @@ internal sealed class EmbeddedSite : IDisposable
         resourceTypes.Add("EMU-AUDITY-2000.jpg", "image/jpeg");
         resourceTypes.Add("EMU-VIRTUOSO-2000.jpg", "image/jpeg");
         resourceTypes.Add("EMU-XTREME-LEAD-1.jpg", "image/jpeg");
+        resourceTypes.Add("E-MU-TURBOPHATT.jpg", "image/jpeg");
+        resourceTypes.Add("E-MU-Orbit-3.jpg", "image/jpeg");
+        resourceTypes.Add("E-MU-MOPHATT.jpg", "image/jpeg");
+        resourceTypes.Add("E-MU-B-3.jpg", "image/jpeg");
 
         listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
